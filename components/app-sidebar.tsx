@@ -22,7 +22,6 @@ import {
 import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
-import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
   SidebarContent,
@@ -32,7 +31,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { ModeToggle } from "./modeToggle"
 import { UserButton } from "@clerk/nextjs"
 
 const data = {
@@ -178,7 +176,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarFooter>
         <UserButton/>
-        {/* <NavUser user={data.user} /> */}
       </SidebarFooter>
     </Sidebar>
   )
