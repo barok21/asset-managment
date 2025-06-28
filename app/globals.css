@@ -194,6 +194,10 @@ body {
   letter-spacing: var(--tracking-normal);
 }
 
+.sidebar[data-collapsed="true"] .some-inner-element {
+  display: none;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

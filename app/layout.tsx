@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider"
 import { ClerkProvider } from '@clerk/nextjs'
 import { dark } from '@clerk/themes'
+import { Toaster } from "sonner";
 
 
 
@@ -45,6 +46,7 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
             >
+              <Toaster richColors />
         {children}
       </ThemeProvider>
             {/* </SidebarProvider> */}
