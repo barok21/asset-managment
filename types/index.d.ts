@@ -32,11 +32,10 @@ interface CreateProperty {
   category: string;
 }
 
-interface GetAllCompanions {
+interface GetAllProperties {
   limit?: number;
   page?: number;
-  subject?: string | string[];
-  topic?: string | string[];
+  category?: string | string[];
 }
 
 interface BuildClient {
