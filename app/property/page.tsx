@@ -12,6 +12,7 @@ import { DataTableNew } from "../../components/datatable";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardAction, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconTrendingUp } from "@tabler/icons-react";
+import Tab from "@/components/tabs";
 const PropertyList = async ({searchParams}: SearchParams) => {
   const filters = await searchParams;
   const category = filters.category ? filters.category : '' 
@@ -31,6 +32,7 @@ const PropertyList = async ({searchParams}: SearchParams) => {
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
+        <div className="aspect-video w-full flex-1 rounded-lg border border-dashed p-6">
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
@@ -39,8 +41,8 @@ const PropertyList = async ({searchParams}: SearchParams) => {
               {/* {property.map((propertyItem, index) => (
               <div key={index}>{propertyItem.name}</div> ))} */}
                 {/* <ChartAreaInteractive /> */}
-        <div className="size-60">
-                 <Card className="@container/card">
+              <Tab/>
+              <Card className="@container/card">
         <CardHeader>
           <CardDescription>Total Property</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
@@ -62,10 +64,10 @@ const PropertyList = async ({searchParams}: SearchParams) => {
           </div>
         </CardFooter>
       </Card>
-        </div>
               </div>
               Total Property : {total}
               <DataTableNew columns={columns} data={property} />
+        </div>
         </div>
           </div>
         </div>

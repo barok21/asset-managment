@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/sidebar"
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
+import { ChartLineDotsCustom } from '@/components/chart'
 
 
 const NewProperty = async () => {
@@ -33,6 +34,7 @@ const NewProperty = async () => {
               <div className="px-12 lg:px-6">
               <article>
             {/* <h1>Property Registration</h1> */}
+            
             <PropertyForm/>
               </article>
                 {/* <ChartAreaInteractive /> */}
