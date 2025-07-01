@@ -1,545 +1,218 @@
-"use client"
-import {
-  useState
-} from "react"
-import {
-  toast
-} from "sonner"
-import {
-  useForm
-} from "react-hook-form"
-import {
-  zodResolver
-} from "@hookform/resolvers/zod"
-import {
-  z
-} from "zod"
-import {
-  cn
-} from "@/lib/utils"
-import {
-  Button
-} from "@/components/ui/button"
+"use client";
+
+import { useState } from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+
 import {
   Form,
-  FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
+  FormControl,
   FormMessage,
-} from "@/components/ui/form"
-import {
-  Input
-} from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select"
-import { createPropert } from "@/lib/actions/property.action"
-import { redirect } from "next/navigation"
-import { Label } from "./ui/label"
-import { Plus, Send, Trash2 } from "lucide-react"
-import { ChartLineDotsCustom } from "./chart"
+} from "@/components/ui/form";
 
-const formSchema = z.object({
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Plus, Trash2 } from "lucide-react";
+import { createPropertiesBulk } from "@/lib/actions/property.action";
+import { Separator } from "./ui/separator";
+
+// Zod Schema
+const propertySchema = z.object({
   name: z.string().min(1),
-  quantity: z.coerce.number(),
-  initial_price: z.coerce.number(),
-  category: z.string()
+  quantity: z.coerce.number().min(1),
+  initial_price: z.coerce.number().min(0),
+  category: z.string().min(1),
 });
 
-const resourceTypes = [
-  { id: "sound_system", name: "Sound System", category: "Audio/Visual" },
-  { id: "projector", name: "Projector", category: "Audio/Visual" },
-  { id: "microphone", name: "Microphone", category: "Audio/Visual" },
-  { id: "chairs", name: "Chairs", category: "Furniture" },
-  { id: "tables", name: "Tables", category: "Furniture" },
-  { id: "classroom", name: "Classroom", category: "Space" },
-  { id: "hall", name: "Main Hall", category: "Space" },
-  { id: "kitchen", name: "Kitchen Facilities", category: "Space" },
-  { id: "books", name: "Books/Materials", category: "Educational" },
-  { id: "markers", name: "Markers/Supplies", category: "Educational" },
-  { id: "decorations", name: "Decorations", category: "Event" },
-  { id: "candles", name: "Candles", category: "Liturgical" },
-]
+type PropertyFormData = z.infer<typeof propertySchema>;
 
+export default function BulkPropertyForm() {
+  const [properties, setProperties] = useState<PropertyFormData[]>([]);
+  const [loading, setLoading] = useState(false); // 👈 Loading state
 
+  const form = useForm<PropertyFormData>({
+    resolver: zodResolver(propertySchema),
+    defaultValues: {
+      name: "",
+      quantity: 1,
+      initial_price: 0,
+      category: "",
+    },
+  });
 
-  
-export default function MyForm() {
+  const addProperty = (data: PropertyFormData) => {
+    setProperties((prev) => [data, ...prev]);
+    form.reset();
+    toast.success("Property added to list.");
+  };
 
-  const [selectedResources, setSelectedResources] = useState<
-    Array<{
-      id: string
-      type: string
-      notes: string
-      status: "pending";
-      name: string;
-      quantity: number;
-      initial_price: number;
-      category: string;
-    }>
-  >([])
+  const removeProperty = (index: number) => {
+    setProperties((prev) => prev.filter((_, i) => i !== index));
+  };
 
- const [newResource, setNewResource] = useState({
-    type: "",
-    name:'',
-    quantity: 1,
-    initial_price: 1,
-    notes: "",
-    category: ''
-  })
-
- const addResource = () => {
-    if (!newResource.type) {
-      alert("Please select a resource type")
-      return
+  const onSubmitAll = async () => {
+    if (properties.length === 0) {
+      toast.error("Add at least one property.");
+      return;
     }
 
-    const resource = {
-      id: Date.now().toString(),
-      ...newResource,
-      status: "pending" as const,
+    setLoading(true); // 👈 Start loading
+    try {
+      const result = await createPropertiesBulk(properties);
+
+      if (result?.success) {
+        toast.success("Bulk property creation successful!");
+        setProperties([]);
+      } else {
+        toast.error("Failed to create properties.");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("An error occurred.");
+    } finally {
+      setLoading(false); // 👈 End loading
     }
-
-    // Add new resource at the beginning of the array
-    setSelectedResources([resource, ...selectedResources])
-
-    // Reset the form
-    setNewResource({
-    type: "",
-    name:'',
-    quantity: 1,
-    initial_price:1,
-    notes: "",
-    category: ''
-    })
-  }
-
- const removeResource = (id: string) => {
-     setSelectedResources(selectedResources.filter((resource) => resource.id !== id))
-   }
- 
-   const updateResource = (id: string, field: string, value: string | number) => {
-     const updated = selectedResources.map((resource) =>
-       resource.id === id ? { ...resource, [field]: value } : resource,
-     )
-     setSelectedResources(updated)
-   }
- 
-   const getResourceName = (resourceId: string) => {
-     const resource = resourceTypes.find((r) => r.id === resourceId)
-     return resource ? `${resource.name} (${resource.category})` : resourceId
-   }
- 
-   const handleSubmit = (e: React.FormEvent) => {
-     e.preventDefault()
- 
-     if (selectedResources.length === 0) {
-       alert("Please add at least one resource to your request")
-       return
-     }
- 
-     const request = {
-       id: Date.now().toString(),
-       ...formData,
-       resources: selectedResources,
-       status: "pending",
-       submittedAt: new Date().toISOString(),
-       // requesterId: user?.id,
-       priority: "normal",
-     }
- 
-     // Save to localStorage (in a real app, this would be sent to a database)
-     const existingRequests = JSON.parse(localStorage.getItem("resource_requests") || "[]")
-     existingRequests.push(request)
-     localStorage.setItem("resource_requests", JSON.stringify(existingRequests))
- 
-     // Download as JSON file for record keeping
-     const dataStr = JSON.stringify(request, null, 2)
-     const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr)
-     // const exportFileDefaultName = `resource_request_${formData.department}_${formData.requestDate}.json`
- 
-     const linkElement = document.createElement("a")
-     linkElement.setAttribute("href", dataUri)
-     // linkElement.setAttribute("download", exportFileDefaultName)
-     linkElement.click()
- 
-     alert("Resource request submitted successfully!")
-     
-   }
-
-
-  
-   const [formData, setFormData] = useState({
-    // requesterName: user?.name || "",
-    // department: user?.department || "",
-    contactInfo: "",
-    requestDate: new Date().toISOString().split("T")[0],
-    eventDate: "",
-    eventTime: "",
-    duration: "",
-    purpose: "",
-    specialRequirements: "",
-    setupRequirements: "",
-    returnDate: "",
-    alternativeDate: "",
-  })
-
-  const form = useForm < z.infer < typeof formSchema >> ({
-    resolver: zodResolver(formSchema),
-
-  })
-
-  
-const onSubmit = async (values: z.infer<typeof formSchema>) => {
-  try {
-    const property = await createPropert(values);
-
-    if (property) {
-      toast.success(`Successfully added: ${values.name}`);
-    } else {
-      toast.error("Failed to create the property.");
-    }
-  } catch (error) {
-    toast.error("Something went wrong.");
-    console.error(error);
-  }
-};
+  };
 
   return (
-    <Form {...form}>
-      
-      <form onSubmit={form.handleSubmit(onSubmit)} className="">
-      <div className="aspect-video w-full flex-1 rounded-lg border border-dashed p-5">
-    
-      <div className="space-y-4">
-        <div className="size-90">
-              <ChartLineDotsCustom/>
-              </div>
-                    <h3 className="text-lg font-semibold border-b pb-2">Add Resources</h3>
-    
-                    {/* Add New Resource Form */}
-                    <div className="border rounded-lg p-4 bg-muted/30">
-                      <div className="grid grid-co md:grid-cols-6 gap-3 items-end">
+    <div className="flex gap-4">
+      <div className="bg-card p-5 rounded-2xl space-y-5 border-1 ">
+        <p className="text-2xl">Property Registration</p>
+      <Separator/>
+      <Form {...form}>
+        <form
+          onSubmit={form.handleSubmit(addProperty)}
+          className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end"
+        >
 
-                        <FormItem>
-                          <FormLabel>የንብረቱ ስም</FormLabel>
-                            <FormControl>
-                              <Input
-                                value={newResource.name}
-                                onChange={(e) => setNewResource((prev) => ({ ...prev, name: e.target.value }))}
-                                placeholder="Enter name..."
-                              />
-                          </FormControl>
-                        </FormItem>
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g. Projector" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-                        <FormField
-                                  control={form.control}
-                                  name="quantity"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Quantity</FormLabel>
-                                      <FormControl>
-                                        <Input 
-                                        placeholder="Write an number"
-                                        {...field} />
-                                      </FormControl>
-                                      
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                
-                                   <FormField
-                                          control={form.control}
-                                          name="initial_price"
-                                          render={({ field }) => (
-                                            <FormItem>
-                                              <FormLabel>initial price</FormLabel>
-                                              <FormControl>
-                                                <Input 
-                                                placeholder="price"
-                                                {...field}
-                                                 />
-                                              </FormControl>
-                                              
-                                              <FormMessage />
-                                            </FormItem>
-                                          )}
-                                        />
-                                        
-                                        <FormField
-                                          control={form.control}
-                                          name="category"
-                                          render={({ field }) => (
-                                            <FormItem>
-                                              <FormLabel>Email</FormLabel>
-                                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl>
-                                                  <SelectTrigger>
-                                                    <SelectValue placeholder="selcet a category" />
-                                                  </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                  <SelectItem value="m@example.com">m@example.com</SelectItem>
-                                                  <SelectItem value="m@google.com">m@google.com</SelectItem>
-                                                  <SelectItem value="m@support.com">m@support.com</SelectItem>
-                                                </SelectContent>
-                                              </Select>
-                                                
-                                              <FormMessage />
-                                            </FormItem>
-                                          )}
-                                        />
-                         
-                          {/* <div>
-                          <Label className="text-sm py-2">የንብረቱ ስም ዝርዝር</Label>
-                          <Input
-                            value={newResource.name}
-                            onChange={(e) => setNewResource((prev) => ({ ...prev, name: e.target.value }))}
-                            placeholder="Optional..."
-                            className="h-9"
-                          />
-                        </div> */}
+          <FormField
+            control={form.control}
+            name="quantity"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Quantity</FormLabel>
+                <FormControl>
+                  <Input type="number" min={1} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-                         <div className="md:col-span-1">
-                          <Label className="text-sm py-2">መለኪያ(UoM) *</Label>
-                          <Select
-                            value={newResource.type}
-                            onValueChange={(value) => setNewResource((prev) => ({ ...prev, type: value }))}
-                          >
-                            <SelectTrigger className="h-9">
-                              <SelectValue placeholder="Select resource" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {resourceTypes.map((resourceType) => (
-                                <SelectItem key={resourceType.id} value={resourceType.id}>
-                                  {resourceType.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      
+          <FormField
+            control={form.control}
+            name="initial_price"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Initial Price</FormLabel>
+                <FormControl>
+                  <Input type="number" min={0} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-                        
-                        
-                       
-{/* 
-                        <div className="md:col-span-1">
-                          <Label className="text-sm py-2">Resource Type *</Label>
-                          <Select
-                            value={newResource.type}
-                            onValueChange={(value) => setNewResource((prev) => ({ ...prev, type: value }))}
-                          >
-                            <SelectTrigger className="h-9">
-                              <SelectValue placeholder="Select resource" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {resourceTypes.map((resourceType) => (
-                                <SelectItem key={resourceType.id} value={resourceType.id}>
-                                  {resourceType.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-    
-                        <div>
-                          <Label className="text-sm py-2">Notes</Label>
-                          <Input
-                            value={newResource.notes}
-                            onChange={(e) => setNewResource((prev) => ({ ...prev, notes: e.target.value }))}
-                            placeholder="Optional..."
-                            className="h-9"
-                          />
-                        </div> */}
-    
-                        <div>
-                          <Button type="button" onClick={addResource} className="h-9 w-full">
-                            <Plus className="w-4 h-4 mr-1" />
-                            Add
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-    
-                    {/* Resources Table */}
-                    {selectedResources.length > 0 && (
-                      <div className="border rounded-lg overflow-hidden">
-                        <table className="w-full">
-                          <thead className="bg-muted/50">
-                            <tr>
-                              <th className="text-left p-3 font-medium text-sm">የንብረቱ ስም ዝርዝር</th>
-                              <th className="text-left p-3 font-medium text-sm">Resource</th>
-                              <th className="text-left p-3 font-medium text-sm w-24">Qty</th>
-                              <th className="text-left p-3 font-medium text-sm">Notes</th>
-                              <th className="text-left p-3 font-medium text-sm w-20">Remove</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {selectedResources.map((resource) => (
-                              <tr key={resource.id} className="border-t hover:bg-muted/30">
-                                 <td className="p-3">
-                                  <Input
-                                    value={resource.name}
-                                    onChange={(e) => updateResource(resource.id, "name", e.target.value)}
-                                    placeholder="Optional notes..."
-                                    className="h-8 text-sm"
-                                  />
-                                </td>
-                                <td className="p-3">
-                                  <div className="font-medium text-sm">{getResourceName(resource.type)}</div>
-                                </td>
-                                <td className="p-3">
-                                  <Input
-                                    type="number"
-                                    min="1"
-                                    value={resource.quantity}
-                                    onChange={(e) =>
-                                      updateResource(resource.id, "quantity", Number.parseInt(e.target.value) || 1)
-                                    }
-                                    className="w-16 h-8 text-center text-sm"
-                                  />
-                                </td>
-                                <td className="p-3">
-                                  <Input
-                                    value={resource.notes}
-                                    onChange={(e) => updateResource(resource.id, "notes", e.target.value)}
-                                    placeholder="Optional notes..."
-                                    className="h-8 text-sm"
-                                  />
-                                </td>
-                                <td className="p-3">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => removeResource(resource.id)}
-                                    className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-    
-                    {selectedResources.length === 0 && (
-                      <div className="text-center py-6 text-muted-foreground border-2 rounded-lg bg-muted/20">
-                        <p className="text-sm">No resources added yet. Use the form above to add resources.</p>
-                      </div>
-                    )}
-                  </div>
-                   <div className="flex justify-end gap-3 pt-4 border-">
-                <Button type="button" variant="outline">
-                  Cancel
-                </Button>
-                <Button type="submit">Submit</Button>
-              </div>
-              
+          <FormField
+            control={form.control}
+            name="category"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g. Furniture" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="md:col-span-4">
+            <Button variant={"default"} type="submit" className="w-ful ">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Property
+            </Button>
+          </div>
+        </form>
+      </Form>
+
+      {/* Table of added properties */}
+      {properties.length > 0 ? (
+        <div className="border rounded-lg overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40">
+              <tr>
+                <th className="p-2 text-left">Name</th>
+                <th className="p-2 text-center">Qty</th>
+                <th className="p-2 text-center">Price</th>
+                <th className="p-2 text-center">Category</th>
+                <th className="p-2 text-center">Remove</th>
+              </tr>
+            </thead>
+            <tbody>
+              {properties.map((prop, i) => (
+                <tr key={i} className="border-t">
+                  <td className="p-2">{prop.name}</td>
+                  <td className="p-2 text-center">{prop.quantity}</td>
+                  <td className="p-2 text-center">{prop.initial_price}</td>
+                  <td className="p-2 text-center">{prop.category}</td>
+                  <td className="p-2 text-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-6 w-6 text-red-500"
+                      onClick={() => removeProperty(i)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground text-center border-2 p-8 rounded-xl bg-card">
+          No properties added yet.
+        </p>
+      )}
+
+      {/* Submit All Button with loading */}
+      <Button
+        onClick={onSubmitAll}
+        variant={"default"}
+        className="w-full mt-4 flex items-center justify-center gap-2"
+        disabled={loading}
+      >
+        {loading && (
+          <span className="animate-spin rounded-full size-10 border-t-2 border-white" />
+        )}
+        {loading ? "Submitting..." : "Submit All Properties"}
+      </Button>
     </div>
-              </form>
-    </Form>
-
-    //     <Form {...form}>
-    //   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 max-w-3xl mx-auto py-10">
-        
-    //     <div className="grid grid-cols-12 gap-4">
-          
-    //       <div className="col-span-6">
-            
-    //     <FormField
-    //       control={form.control}
-    //       name="name"
-    //       render={({ field }) => (
-    //         <FormItem>
-    //           <FormLabel>Property Name</FormLabel>
-    //           <FormControl>
-    //             <Input 
-    //             placeholder="Property name"
-    //             {...field} />
-    //           </FormControl>
-              
-    //           <FormMessage />
-    //         </FormItem>
-    //       )}
-    //     />
-    //       </div>
-          
-    //       <div className="col-span-6">
-            
-    //     <FormField
-    //       control={form.control}
-    //       name="quantity"
-    //       render={({ field }) => (
-    //         <FormItem>
-    //           <FormLabel>Quantity</FormLabel>
-    //           <FormControl>
-    //             <Input 
-    //             placeholder="Write an number"
-    //             {...field} />
-    //           </FormControl>
-              
-    //           <FormMessage />
-    //         </FormItem>
-    //       )}
-    //     />
-    //       </div>
-          
-    //     </div>
-        
-    //     <FormField
-    //       control={form.control}
-    //       name="initial_price"
-    //       render={({ field }) => (
-    //         <FormItem>
-    //           <FormLabel>initial price</FormLabel>
-    //           <FormControl>
-    //             <Input 
-    //             placeholder="price"
-    //             {...field}
-    //              />
-    //           </FormControl>
-              
-    //           <FormMessage />
-    //         </FormItem>
-    //       )}
-    //     />
-        
-    //     <FormField
-    //       control={form.control}
-    //       name="category"
-    //       render={({ field }) => (
-    //         <FormItem>
-    //           <FormLabel>Email</FormLabel>
-    //           <Select onValueChange={field.onChange} defaultValue={field.value}>
-    //             <FormControl>
-    //               <SelectTrigger>
-    //                 <SelectValue placeholder="selcet a category" />
-    //               </SelectTrigger>
-    //             </FormControl>
-    //             <SelectContent>
-    //               <SelectItem value="m@example.com">m@example.com</SelectItem>
-    //               <SelectItem value="m@google.com">m@google.com</SelectItem>
-    //               <SelectItem value="m@support.com">m@support.com</SelectItem>
-    //             </SelectContent>
-    //           </Select>
-                
-    //           <FormMessage />
-    //         </FormItem>
-    //       )}
-    //     />
-    //     <Button type="submit">Submit</Button>
-    //   </form>
-    // </Form>
-  )
+    <div className="bg-sky-500">
+      ss
+    </div>
+    </div>
+  );
 }

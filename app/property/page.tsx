@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardAction, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconTrendingUp } from "@tabler/icons-react";
 import Tab from "@/components/tabs";
+import { SectionCards } from "@/components/section-cards";
+import { ChartAreaInteractive } from "@/components/chart-area-interactive";
 const PropertyList = async ({searchParams}: SearchParams) => {
   const filters = await searchParams;
   const category = filters.category ? filters.category : '' 
@@ -32,16 +34,16 @@ const PropertyList = async ({searchParams}: SearchParams) => {
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
-        <div className="aspect-video w-full flex-1 rounded-lg border border-dashed p-6">
+        <div className="aspect-video w-full flex-1  p-6">
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              {/* <SectionCards /> */}
+              <SectionCards />
+                <Tab/>
               <div className="px-12 lg:px-6">
               {/* {property.map((propertyItem, index) => (
               <div key={index}>{propertyItem.name}</div> ))} */}
-                {/* <ChartAreaInteractive /> */}
-              <Tab/>
+                <ChartAreaInteractive />
               <Card className="@container/card">
         <CardHeader>
           <CardDescription>Total Property</CardDescription>

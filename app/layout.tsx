@@ -46,7 +46,7 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
             >
-              <Toaster richColors />
+              <Toaster richColors position="top-right"/>
         {children}
       </ThemeProvider>
             {/* </SidebarProvider> */}

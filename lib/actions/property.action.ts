@@ -3,21 +3,31 @@
 import { auth } from "@clerk/nextjs/server"
 import { createSupaseClient } from "../supabase";
 
-export const createPropert = async (formData: CreateProperty) => {
-    const { userId: username } = await auth();
-    const supabase = createSupaseClient();
+export const createPropertiesBulk = async (properties: CreateProperty[]) => {
+  const { userId: username } = await auth();
+  const supabase = createSupaseClient();
 
-    const {data, error} = await supabase
-        .from('property')
-        .insert({...formData, username})
-        .select();
+  const payload = properties.map((property) => ({
+    ...property,
+    username,
+  }));
 
-        if (error || !data) {
-            throw new Error(error?.message || 'Failed to create a propert')
-        }
+  const { data, error } = await supabase
+    .from("property")
+    .insert(payload)
+    .select();
 
-        return data[0];
-    }
+  if (error || !data) {
+    throw new Error(error?.message || "Failed to create properties in bulk");
+  }
+
+  return {
+    success: true,
+    data,
+  };
+};
+
+
 
 export const getAllProperties = async ({
   limit = 10,
