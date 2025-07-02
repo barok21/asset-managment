@@ -29,6 +29,8 @@ import {
 } from "./ui/select";
 import { Badge } from "./ui/badge";
 import { UOM_OPTIONS } from "@/types/constants";
+import { TextShimmerWave } from "./motion-primitives/text-shimmer-wave";
+import { TextShimmer } from "./motion-primitives/text-shimmer";
 
 // Zod Schema
 const propertySchema = z.object({
@@ -38,7 +40,6 @@ const propertySchema = z.object({
   category: z.string().min(1),
   dept_user: z.string().min(1),
   UoM: z.string().min(1), // or z.enum(["pc", "set", ...]) for stronger typing
-
 });
 
 type PropertyFormData = z.infer<typeof propertySchema>;
@@ -77,170 +78,192 @@ export default function BulkPropertyForm() {
     setProperties((prev) => prev.filter((_, i) => i !== index));
   };
 
-const onSubmitAll = async () => {
-  if (properties.length === 0) {
-    toast.error("Add at least one property.");
-    return;
-  }
-
-  setLoading(true);
-  try {
-    const result = await createPropertiesBulk(properties);
-
-    if (result?.success) {
-      toast.success(`${result.inserted} properties added.`);
-
-      if (result.skipped > 0) {
-        toast.warning(
-          `${result.skipped} skipped: ${result.duplicates.join(", ")} already exist.`
-        );
-      }
-
-      setProperties([]);
-    } else {
-      toast.error(result.message || "Failed to insert properties.");
+  const onSubmitAll = async () => {
+    if (properties.length === 0) {
+      toast.error("Add at least one property.");
+      return;
     }
-  } catch (error) {
-    console.error(error);
-    toast.error("An error occurred during submission.");
-  } finally {
-    setLoading(false);
-  }
-};
+
+    setLoading(true);
+    try {
+      const result = await createPropertiesBulk(properties);
+
+      if (result?.success) {
+        toast.success(`${result.inserted} properties added.`);
+
+        if (result.skipped > 0) {
+          toast.warning(
+            `${result.skipped} skipped: ${result.duplicates.join(
+              ", "
+            )} already exist.`
+          );
+        }
+
+        setProperties([]);
+      } else {
+        toast.error(result.message || "Failed to insert properties.");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("An error occurred during submission.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6">
       <div className="bg-card p-6 rounded-2xl border">
-        <p className="text-2xl font-semibold mb-2 font-kefa">የሕፃናትና አዳጊ ነጭ ልብሰ ስብሐት</p>
+        <p className="text-2xl font-semibold mb-2 font-kefa">
+          የሕፃናትና አዳጊ ነጭ ልብሰ ስብሐት
+        </p>
         <Separator className="mb-6" />
 
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(addProperty)}
-            
-          >
+          <form onSubmit={form.handleSubmit(addProperty)}>
             <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. Projector" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="UoM"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>UoM</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select UoM" />
-                      </SelectTrigger>
+                      <Input placeholder="e.g. Projector" {...field} />
                     </FormControl>
-                    <SelectContent>
-                      {UOM_OPTIONS.map((item) => (
-                        <SelectItem key={item.label} value={item.label}>
-                          {item.label}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="UoM"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>UoM</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select UoM" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {UOM_OPTIONS.map((item) => (
+                          <SelectItem key={item.label} value={item.label}>
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="quantity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantity</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={1}
+                        {...field}
+                        className="h- px-2 text-sm"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="initial_price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Initial Price</FormLabel>
+                    <FormControl>
+                      <Input type="number" min={0} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Furniture">Furniture</SelectItem>
+                        <SelectItem value="Electronics">Electronics</SelectItem>
+                        <SelectItem value="Stationery">Stationery</SelectItem>
+                        <SelectItem value="IT Equipment">
+                          IT Equipment
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="quantity"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Quantity</FormLabel>
-                  <FormControl>
-                    <Input type="number" min={1} {...field} className="h- px-2 text-sm" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-
-            <FormField
-              control={form.control}
-              name="initial_price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Initial Price</FormLabel>
-                  <FormControl>
-                    <Input type="number" min={0} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Furniture">Furniture</SelectItem>
-                      <SelectItem value="Electronics">Electronics</SelectItem>
-                      <SelectItem value="Stationery">Stationery</SelectItem>
-                      <SelectItem value="IT Equipment">IT Equipment</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="dept_user"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Department User</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a user" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="m@example.com">m@example.com</SelectItem>
-                      <SelectItem value="m@google.com">m@google.com</SelectItem>
-                      <SelectItem value="m@support.com">m@support.com</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+              <FormField
+                control={form.control}
+                name="dept_user"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Department User</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a user" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="m@example.com">
+                          m@example.com
+                        </SelectItem>
+                        <SelectItem value="m@google.com">
+                          m@google.com
+                        </SelectItem>
+                        <SelectItem value="m@support.com">
+                          m@support.com
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="flex justify-en mt-3   ">
               <Button type="submit" variant="default">
                 <Plus className="mr-2 h-4 w-4" />
-                  Add Property
+                Add Property
               </Button>
             </div>
           </form>
@@ -278,7 +301,7 @@ const onSubmitAll = async () => {
                       />
                     </td>
 
-                      <td className="p-2 text-center">
+                    <td className="p-2 text-center">
                       <Select
                         value={prop.UoM}
                         onValueChange={(val) =>
@@ -289,17 +312,17 @@ const onSubmitAll = async () => {
                           )
                         }
                       >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select UoM" />
-                      </SelectTrigger>
-                    <SelectContent>
-                      {UOM_OPTIONS.map((item) => (
-                        <SelectItem key={item.label} value={item.label}>
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select UoM" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {UOM_OPTIONS.map((item) => (
+                            <SelectItem key={item.label} value={item.label}>
+                              {item.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </td>
 
                     {/* Editable Quantity */}
@@ -313,7 +336,10 @@ const onSubmitAll = async () => {
                           setProperties((prev) =>
                             prev.map((p, idx) =>
                               idx === i
-                                ? { ...p, quantity: parseInt(e.target.value) || 1 }
+                                ? {
+                                    ...p,
+                                    quantity: parseInt(e.target.value) || 1,
+                                  }
                                 : p
                             )
                           )
@@ -334,7 +360,8 @@ const onSubmitAll = async () => {
                               idx === i
                                 ? {
                                     ...p,
-                                    initial_price: parseFloat(e.target.value) || 0,
+                                    initial_price:
+                                      parseFloat(e.target.value) || 0,
                                   }
                                 : p
                             )
@@ -360,9 +387,13 @@ const onSubmitAll = async () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Furniture">Furniture</SelectItem>
-                          <SelectItem value="Electronics">Electronics</SelectItem>
+                          <SelectItem value="Electronics">
+                            Electronics
+                          </SelectItem>
                           <SelectItem value="Stationery">Stationery</SelectItem>
-                          <SelectItem value="IT Equipment">IT Equipment</SelectItem>
+                          <SelectItem value="IT Equipment">
+                            IT Equipment
+                          </SelectItem>
                           <SelectItem value="Other">Other</SelectItem>
                         </SelectContent>
                       </Select>
@@ -384,9 +415,15 @@ const onSubmitAll = async () => {
                           <SelectValue placeholder="Department" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="m@example.com">m@example.com</SelectItem>
-                          <SelectItem value="m@google.com">m@google.com</SelectItem>
-                          <SelectItem value="m@support.com">m@support.com</SelectItem>
+                          <SelectItem value="m@example.com">
+                            m@example.com
+                          </SelectItem>
+                          <SelectItem value="m@google.com">
+                            m@google.com
+                          </SelectItem>
+                          <SelectItem value="m@support.com">
+                            m@support.com
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </td>
@@ -409,11 +446,22 @@ const onSubmitAll = async () => {
             </table>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground text-center border-2 border-dashed p-10  rounded-xl mt-6">
-            No properties added yet.
-          </p>
+          <div className="text-lg text-muted-foreground text-center border-2 border-dashed p-10  rounded-xl mt-6">
+            {/* <TextShimmerWave
+              className="[--base-color:#0D74CE] [--base-gradient-color:#5EB1EF]"
+              duration={1}
+              spread={1}
+              zDistance={1}
+              scaleDistance={1.1}
+              rotateYDistance={20}
+            >
+              No property added yet ...
+            </TextShimmerWave> */}
+            <TextShimmer className="font-mono text-sm" duration={1}>
+              No property added yet ...
+            </TextShimmer>
+          </div>
         )}
-
 
         {/* Submit All Button */}
         <Button
