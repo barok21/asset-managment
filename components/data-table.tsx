@@ -475,7 +475,7 @@ export function DataTable({
           </Button>
         </div>
       </div>
-      <TabsContent
+      {/* <TabsContent
         value="outline"
         className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6"
       >
@@ -607,7 +607,7 @@ export function DataTable({
             </div>
           </div>
         </div>
-      </TabsContent>
+      </TabsContent> */}
       <TabsContent
         value="past-performance"
         className="flex flex-col px-4 lg:px-6"

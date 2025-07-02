@@ -1,13 +1,39 @@
 'use server';
 
-import { auth } from "@clerk/nextjs/server"
+import { auth } from "@clerk/nextjs/server";
 import { createSupaseClient } from "../supabase";
 
 export const createPropertiesBulk = async (properties: CreateProperty[]) => {
   const { userId: username } = await auth();
   const supabase = createSupaseClient();
 
-  const payload = properties.map((property) => ({
+  // Step 1: Collect property names to check for duplicates
+  const names = properties.map((p) => p.name);
+
+  // Step 2: Check existing names in the database
+  const { data: existing, error: fetchError } = await supabase
+    .from("property")
+    .select("name")
+    .in("name", names);
+
+  if (fetchError) {
+    throw new Error(fetchError.message || "Error checking for duplicates.");
+  }
+
+  const existingNames = new Set(existing?.map((item) => item.name));
+  const filtered = properties.filter((p) => !existingNames.has(p.name));
+
+  if (filtered.length === 0) {
+    return {
+      success: false,
+      message: "All provided property names already exist.",
+      skipped: names.length,
+      duplicates: Array.from(existingNames),
+    };
+  }
+
+  // Step 3: Insert only unique ones
+  const payload = filtered.map((property) => ({
     ...property,
     username,
   }));
@@ -24,25 +50,32 @@ export const createPropertiesBulk = async (properties: CreateProperty[]) => {
   return {
     success: true,
     data,
+    inserted: data.length,
+    skipped: properties.length - data.length,
+    duplicates: Array.from(existingNames),
   };
 };
-
-
 
 export const getAllProperties = async ({
   limit = 10,
   page = 1,
   category,
+  dept_user,
 }: GetAllProperties) => {
   const supabase = createSupaseClient();
 
   let query = supabase
     .from("property")
-    .select("*", { count: "exact" }); // ✅ include count
+    .select("*", { count: "exact" })
+    .order("created_at", { ascending: false }) // ✅ Fetch recent items
 
   // Optional filter by category
   if (category) {
     query = query.eq("category", category);
+  }
+
+  if (dept_user) {
+    query = query.eq("dept_user", dept_user);
   }
 
   // Pagination
@@ -54,8 +87,9 @@ export const getAllProperties = async ({
 
   return {
     property,
-    total: count, // ✅ this is the total number of matching rows
+    total: count,
   };
 };
+
 
     

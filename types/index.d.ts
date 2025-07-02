@@ -17,6 +17,24 @@ enum Subject {
   business = "business",
 }
 
+const UoM = [
+  { label: "Piece (pc)", value: "pc" },
+  { label: "Set", value: "set" },
+  { label: "Box", value: "box" },
+  { label: "Package (pkg)", value: "pkg" },
+  { label: "Roll", value: "roll" },
+  { label: "Pair", value: "pair" },
+  { label: "Kilogram (kg)", value: "kg" },
+  { label: "Gram (g)", value: "g" },
+  { label: "Liter (l)", value: "l" },
+  { label: "Milliliter (ml)", value: "ml" },
+  { label: "Meter (m)", value: "m" },
+  { label: "Centimeter (cm)", value: "cm" },
+  { label: "Foot (ft)", value: "ft" },
+  { label: "Square Meter (sqm)", value: "sqm" },
+  { label: "Cubic Meter (cbm)", value: "cbm" }
+]
+
 type Property = Models.DocumentList<Models.Document> & {
   $id: string;
   name: string;
@@ -30,12 +48,18 @@ interface CreateProperty {
   quantity: number;
   initial_price: number;
   category: string;
+  dept_user:string;
+  UoM:string;
 }
 
 interface GetAllProperties {
   limit?: number;
+  min_price?: number;
+  max_price?: number;
   page?: number;
   category?: string | string[];
+  dept_user?: string | string[];
+
 }
 
 interface BuildClient {

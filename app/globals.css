@@ -44,6 +44,7 @@
 }
 
 :root {
+  --font-kefa: 'kefa', sans-serif;
   --background: oklch(0.9900 0 0);
   --foreground: oklch(0 0 0);
   --card: oklch(1 0 0);
@@ -188,6 +189,10 @@
   --shadow-lg: var(--shadow-lg);
   --shadow-xl: var(--shadow-xl);
   --shadow-2xl: var(--shadow-2xl);
+}
+
+.font-kefa {
+  font-family: var(--font-kefa);
 }
 
 body {

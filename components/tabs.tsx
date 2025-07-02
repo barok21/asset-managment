@@ -29,6 +29,8 @@ import {
 import MyForm from "./propertyForm"
 import ResourceRequestForm from "./resource-request-form"
 import BulkPropertyForm from "./propertyForm"
+import AllProperty from "./all-property"
+import AllPropertyList from "./all-property"
 
 const Tab = () => {
   return (
@@ -76,7 +78,7 @@ const Tab = () => {
       >
         <div className="aspect-video w-full flex-1">
           <div className="">
-            All Properties
+            <AllPropertyList />
             </div>
         </div>
       </TabsContent>

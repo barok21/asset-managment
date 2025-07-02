@@ -6,8 +6,13 @@ import { ClerkProvider } from '@clerk/nextjs'
 import { dark } from '@clerk/themes'
 import { Toaster } from "sonner";
 
+import localFont from "next/font/local"
 
-
+export const kefa = localFont({
+  src: "fonts/kefa-bold.ttf",
+  variable: "--font-kefa",
+  display: "swap",
+});
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -29,9 +34,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={kefa.variable}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${kefa.variable} ${geistMono.variable} antialiased`}
       >
         <ClerkProvider 
           appearance={{
@@ -46,7 +51,7 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
             >
-              <Toaster richColors position="top-right"/>
+              <Toaster theme="system" position="bottom-right"/>
         {children}
       </ThemeProvider>
             {/* </SidebarProvider> */}
