@@ -416,3 +416,37 @@ const onSubmit = async (values: z.infer<typeof formSchema>) => {
     </div>
   )
 }
+
+
+      <ContextMenu>
+              <ContextMenuTrigger asChild>
+                <div className="border rounded-md p-2 cursor-context-menu">
+                  {field.value || "Right click to select..."}
+                </div>
+              </ContextMenuTrigger>
+
+              <ContextMenuContent className="w-[300px] p-2">
+                <Command>
+                  <CommandInput placeholder="Search property..." />
+                  <CommandList>
+                    <CommandEmpty>No property found.</CommandEmpty>
+                    <CommandGroup>
+                      {propertyOptions.map((item) => (
+                        <CommandItem
+                          key={item}
+                          value={item}
+                          onSelect={() => field.onChange(item)}
+                        >
+                          {item}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </ContextMenuContent>
+            </ContextMenu>
+
+            <FormMessage />
+          </FormItem>
+        )}
+      />

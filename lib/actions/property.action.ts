@@ -150,3 +150,115 @@ export const getDepartments = async () => {
   if (error) throw new Error(error.message);
   return data.map((d) => d.name);
 };
+
+export const getAllDepartment = async ({
+  limit = 10,
+  page = 1,
+}: GetAllDepartment) => {
+  const supabase = createSupaseClient();
+
+  let query = supabase
+    .from("departments")
+    .select("*", { count: "exact" })
+    .order("created_at", { ascending: false }); // ✅ Fetch recent items
+
+  // Optional filter by category
+
+  // Pagination
+  query = query.range((page - 1) * limit, page * limit - 1);
+
+  const { data: property, count, error } = await query;
+
+  if (error) throw new Error(error.message);
+
+  return {
+    property,
+    total: count,
+  };
+};
+
+export const requestProperty = async (properties: requestProperty[]) => {
+  const { userId: username } = await auth()
+  const supabase = createSupaseClient()
+
+  const payload = properties.map((property) => ({
+    ...property,
+    username,
+  }))
+
+  const { data, error } = await supabase
+    .from("request_property")
+    .insert(payload)
+    .select()
+
+  if (error || !data) {
+    throw new Error(error?.message || "Failed to insert request properties")
+  }
+
+  return {
+    success: true,
+    data,
+    inserted: data.length,
+  }
+}
+
+export async function getRequestedProperties() {
+  const supabase = createSupaseClient()
+
+  const { data, error } = await supabase
+    .from("request_property")
+    .select("*")
+    .order("created_at", { ascending: false }) // optional: latest first
+
+  if (error) {
+    console.error("Error fetching requested properties:", error)
+    throw new Error(error.message)
+  }
+
+  return data
+}
+
+// Update request status
+export const updateRequestStatus = async (batchId: string, status: "approved" | "rejected") => {
+  const supabase = createSupaseClient()
+  
+  const { error } = await supabase
+    .from("request_property")
+    .update({ status })
+    .eq("request_batch_id", batchId)
+
+  if (error) throw error
+}
+
+// ✅ Admin updates the approved quantity (called onBlur)
+export const updateApprovedQuantity = async (
+  id: string,
+  approved_quantity: number
+) => {
+  const supabase = createSupaseClient()
+
+  const { error } = await supabase
+    .from("request_property")
+    .update({ approved_quantity })
+    .eq("id", id)
+
+  if (error) throw new Error(error.message)
+}
+
+// ✅ Check if a property is used in other departments
+export const checkPropertyUsage = async (
+  property_name: string,
+  currentDepartment: string
+) => {
+  const supabase = createSupaseClient()
+
+  const { data, error } = await supabase
+    .from("request_property")
+    .select("department")
+    .eq("property_name", property_name)
+    .neq("department", currentDepartment)
+
+  if (error) throw new Error(error.message)
+
+  return [...new Set(data.map((d) => d.department))] // unique depts
+}

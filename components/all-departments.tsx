@@ -35,7 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { getAllProperties } from "@/lib/actions/property.action"
+import { getAllDepartment, getAllProperties } from "@/lib/actions/property.action"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "./ui/badge"
 
@@ -60,7 +60,7 @@ const betweenFilter: FilterFn<Property> = (row, columnId, value) => {
   return true
 }
 
-export default function AllPropertyList() {
+export default function AllDepartmentList() {
   const [data, setData] = React.useState<Property[]>([])
   const [search, setSearch] = React.useState("")
   const [categoryFilter, setCategoryFilter] = React.useState("")
@@ -74,16 +74,13 @@ export default function AllPropertyList() {
   const [rowSelection, setRowSelection] = React.useState({})
 
   React.useEffect(() => {
-    getAllProperties({ limit: 100, page: 1 }).then(res => setData(res.property))
+    getAllDepartment({ limit: 100, page: 1 }).then(res => setData(res.property))
   }, [])
 
   const columns: ColumnDef<Property>[] = [
-    { accessorKey: "name", header: "Name" },
-    { accessorKey: "UoM", header: "UoM" },
-    { accessorKey: "quantity", header: "Qty" },
     {
-        accessorKey: "category",
-        header: () => <div>Category</div>,
+        accessorKey: "dept_id",
+        header: () => <div>Dept CODE</div>,
         cell: (info) => {
             const category = info.getValue<string>()
 
@@ -104,31 +101,7 @@ export default function AllPropertyList() {
             )
         },
     },  
-    {
-        accessorKey: "initial_price",
-        header: () => <div className="text-right">Initial Price</div>,
-        cell: info => {
-            const value = info.getValue<number>();
-            const formatted = typeof value === "number" ? `$${value.toFixed(2)}` : "N/A";
-            return <div className="text-right font-medium">{formatted}</div>;
-        },
-        
-      filterFn: betweenFilter,
-    },
-    {
-        id: "total_price",
-        header: () => <div className="text-right">Total Price</div>,
-        cell: (info) => {
-            const row = info.row.original
-            const total = row.quantity * row.initial_price
-            return (
-                <div className="text-right font-semibold">
-                ${total.toFixed(2)}
-            </div>
-            )
-        },
-    },
-    { accessorKey: "dept_user", header: "Department" },
+    { accessorKey: "name", header: "Department Name" },
     {
       id: "actions",
       cell: ({ row }) => (
@@ -163,66 +136,18 @@ export default function AllPropertyList() {
     getSortedRowModel: getSortedRowModel(),
   })
 
-  React.useEffect(() => {
-    table.getColumn("name")?.setFilterValue(search || undefined)
-    table.getColumn("category")?.setFilterValue(categoryFilter || undefined)
-    table.getColumn("dept_user")?.setFilterValue(deptFilter || undefined)
-  }, [search, categoryFilter, deptFilter, table])
-
-  React.useEffect(() => {
-    table.getColumn("initial_price")?.setFilterValue({
-      min: minPrice === "" ? undefined : minPrice,
-      max: maxPrice === "" ? undefined : maxPrice,
-    })
-  }, [minPrice, maxPrice, table])
-
-  const categories = Array.from(new Set(data.map(p => p.category)))
-  const departments = Array.from(new Set(data.map(p => p.dept_user)))
-
-  const resetFilters = () => {
-    setSearch("")
-    setCategoryFilter("")
-    setDeptFilter("")
-    setMinPrice("")
-    setMaxPrice("")
-  }
-
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-4">
-        <Input placeholder="Search name..." value={search} onChange={e => setSearch(e.target.value)} className="w-48" />
+    <div className="space-y-4 flex grid-cols-3 w-auto gap-5">
+      <div>
 
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-          </SelectContent>
-        </Select>
-
-        <Select value={deptFilter} onValueChange={setDeptFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Department" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            {departments.map(dep => <SelectItem key={dep} value={dep}>{dep}</SelectItem>)}
-          </SelectContent>
-        </Select>
-
-        <Input placeholder="Min" type="number" value={minPrice} onChange={e => setMinPrice(e.target.value === "" ? "" : Number(e.target.value))} className="w-24" />
-        <Input placeholder="Max" type="number" value={maxPrice} onChange={e => setMaxPrice(e.target.value === "" ? "" : Number(e.target.value))} className="w-24" />
-
-        <Button variant="secondary" onClick={resetFilters}>Reset Filters</Button>
-      </div>
-
-      <div className="rounded-xl border shadow-sm overflow-hidden">
+      <div className="rounded-xl border shadow-sm overflow-hidden ">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id}>
+                 <TableHead className="bg-muted text-muted-foreground px-4 py-2">
+                    NO
+                  </TableHead>
                 {headerGroup.headers.map(header => (
                   <TableHead key={header.id} className="bg-muted text-muted-foreground px-4 py-2">
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
@@ -233,8 +158,9 @@ export default function AllPropertyList() {
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map(row => (
-                <TableRow key={row.id} className="hover:bg-card">
+              table.getRowModel().rows.map((row, i) => (
+                <TableRow key={row.id} className="hover:bg-card text-xs font-kefa text-muted-foreground">
+                  <TableCell className="p-2 font-kefa text-center align-middle w-12">{(i + 1)}</TableCell>
                   {row.getVisibleCells().map(cell => (
                     <TableCell key={cell.id} className="px-4 py-2">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -252,7 +178,6 @@ export default function AllPropertyList() {
           </TableBody>
         </Table>
       </div>
-
       <div className="flex justify-between items-center py-4">
         <span className="text-sm text-muted-foreground">
           {table.getFilteredRowModel().rows.length} result(s)
@@ -266,6 +191,21 @@ export default function AllPropertyList() {
           </Button>
         </div>
       </div>
+
+            </div>
+    <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-lg flex items-center justify-center p-8 transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
+  <div className="max-w-2xl text-center">
+    <blockquote className="text-lg md:text-xl italic text-zinc-100 font-serif relative">
+      <span className="text-indigo-400 font-bold font-kefa">ዮሐንስ ፩:፫</span><br />
+      <span className="text-zinc-300 font-kefa">
+        “ሁሉ በእርሱ ሆነ፥ ከሆነውም አንዳች ስንኳ ያለ እርሱ አልሆነም።”
+      </span>
+    </blockquote>
+    <cite className="block mt-4 text-sm text-zinc-500">— The Bible</cite>
+  </div>
+</div>
+
+
     </div>
   )
 }

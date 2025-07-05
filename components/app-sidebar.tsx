@@ -92,8 +92,8 @@ const data = {
           url: "/property",
         },
         {
-          title: "Quantum",
-          url: "#",
+          title: "Request Property",
+          url: "/property/request_property",
         },
       ],
     },

@@ -28,6 +28,7 @@ import AllProperty from "./all-property";
 import AllPropertyList from "./all-property";
 import CreateDept from "./create-dept";
 import AllDept from "./all-dept";
+import AllDepartmentList from "./all-departments";
 
 const SettingTab = () => {
   return (
@@ -71,7 +72,7 @@ const SettingTab = () => {
       <TabsContent value="outline" className="flex flex-col px-4 lg:px-6">
         <div className="aspect-video w-full flex-1">
           <div className="">
-            <AllDept />
+            <AllDepartmentList />
             {/* <AllPropertyList /> */}
           </div>
         </div>

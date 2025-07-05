@@ -199,6 +199,16 @@ body {
   letter-spacing: var(--tracking-normal);
 }
 
+/* Hide scrollbar but allow scrolling */
+.hide-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
+}
+
 .sidebar[data-collapsed="true"] .some-inner-element {
   display: none;
 }

@@ -165,13 +165,14 @@ export default function CreateDept() {
                   <th className="p-2 text-center">NO</th>
                   <th className="p-2 text-left"> Department name</th>
                   <th className="p-2 text-center">Department code</th>
+                  <th className="p-2 text-center">Remove</th>
                 </tr>
               </thead>
               <tbody>
                 {properties.map((prop, i) => (
                   <tr key={i} className="border-t">
                     {/* Editable Name */}
-                    <td className="p-2 items-center font-kefa">{i + 1}</td>
+                    <td className="p-2 font-kefa text-center align-middle w-12">{i + 1}</td>
                     <td className="p-2">
                       <Input
                         value={prop.name}
@@ -196,6 +197,18 @@ export default function CreateDept() {
                           )
                         }
                       />
+                    </td>
+                     {/* Remove */}
+                    <td className="p-2 text-center">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-6 w-6 text-red-500"
+                        onClick={() => removeProperty(i)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </td>
                   </tr>
                 ))}

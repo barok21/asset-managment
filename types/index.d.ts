@@ -57,6 +57,15 @@ interface CreateDept {
   dept_id: string;
 }
 
+interface requestProperty {
+  requestor_full_name:string,
+  department: string,
+  property_name: string,
+  quantity: string,
+  special_requirment?: string,
+  request_batch_id: string
+}
+
 interface GetAllProperties {
   limit?: number;
   min_price?: number;
@@ -64,6 +73,11 @@ interface GetAllProperties {
   page?: number;
   category?: string | string[];
   dept_user?: string | string[];
+}
+
+interface GetAllDepartment {
+  limit?: number;
+  page?: number;
 }
 
 interface BuildClient {

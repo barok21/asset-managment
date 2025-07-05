@@ -1,23 +1,17 @@
-import PropertyForm from '@/components/propertyForm'
 import { AppSidebar } from "@/components/app-sidebar"
+import RequestProperty from "@/components/request-property"
+import RequestedPropertiesTable from "@/components/RequestedPropertiesTable"
+
+import { SectionCards } from "@/components/section-cards"
 import { SiteHeader } from "@/components/site-header"
 import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
-import { auth } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation'
-import { ChartLineDotsCustom } from '@/components/chart'
-import Tab from '@/components/tabs'
 
-
-const NewProperty = async () => {
-  const {userId} = await auth()
-  if(!userId) redirect('./sign-in');
+export default function Page() {
   return (
-    
-    <main>
-        <SidebarProvider
+    <SidebarProvider
       style={
         {
           "--sidebar-width": "calc(var(--spacing) * 72)",
@@ -25,34 +19,25 @@ const NewProperty = async () => {
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant="inset" />
+      {/* <AppSidebar variant="inset" /> */}
       <SidebarInset>
         <SiteHeader />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              {/* <SectionCards /> */}
-              <Tab/>
+              <SectionCards />
               <div className="px-12 lg:px-6">
-              <article>
-            {/* <h1>Property Registration</h1> */}
-            
-            <PropertyForm/>
-              </article>
                 {/* <ChartAreaInteractive /> */}
               </div>
+              <div className="flex justify-end px-6">
+                <RequestProperty />
+              </div>
+                <RequestedPropertiesTable />
               {/* <DataTable data={data} /> */}
-            </div>
+        </div>
           </div>
         </div>
       </SidebarInset>
     </SidebarProvider>
-        
-    </main>
   )
-  
 }
-
-export default NewProperty
-
-
