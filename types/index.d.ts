@@ -32,8 +32,8 @@ const UoM = [
   { label: "Centimeter (cm)", value: "cm" },
   { label: "Foot (ft)", value: "ft" },
   { label: "Square Meter (sqm)", value: "sqm" },
-  { label: "Cubic Meter (cbm)", value: "cbm" }
-]
+  { label: "Cubic Meter (cbm)", value: "cbm" },
+];
 
 type Property = Models.DocumentList<Models.Document> & {
   $id: string;
@@ -48,8 +48,13 @@ interface CreateProperty {
   quantity: number;
   initial_price: number;
   category: string;
-  dept_user:string;
-  UoM:string;
+  dept_user: string;
+  UoM: string;
+}
+
+interface CreateDept {
+  name: string;
+  dept_id: string;
 }
 
 interface GetAllProperties {
@@ -59,7 +64,6 @@ interface GetAllProperties {
   page?: number;
   category?: string | string[];
   dept_user?: string | string[];
-
 }
 
 interface BuildClient {
@@ -84,7 +88,6 @@ interface Avatar {
   height: number;
   className?: string;
 }
-
 
 interface SavedMessage {
   role: "user" | "system" | "assistant";

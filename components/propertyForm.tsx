@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,7 +18,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
-import { createPropertiesBulk } from "@/lib/actions/property.action";
+import {
+  createPropertiesBulk,
+  getDepartments,
+} from "@/lib/actions/property.action";
 import { Separator } from "./ui/separator";
 import {
   Select,
@@ -47,6 +50,17 @@ type PropertyFormData = z.infer<typeof propertySchema>;
 export default function BulkPropertyForm() {
   const [properties, setProperties] = useState<PropertyFormData[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const [departments, setDepartments] = useState<string[]>([]);
+
+  useEffect(() => {
+    getDepartments()
+      .then(setDepartments)
+      .catch((err) => {
+        console.error(err);
+        toast.error("Failed to load departments");
+      });
+  }, []);
 
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertySchema),
@@ -115,7 +129,7 @@ export default function BulkPropertyForm() {
     <div className="flex flex-col gap-6">
       <div className="bg-card p-6 rounded-2xl border">
         <p className="text-2xl font-semibold mb-2 font-kefa">
-          የሕፃናትና አዳጊ ነጭ ልብሰ ስብሐት
+          Property Registration
         </p>
         <Separator className="mb-6" />
 
@@ -226,32 +240,32 @@ export default function BulkPropertyForm() {
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={form.control}
                 name="dept_user"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Department User</FormLabel>
+                    <FormLabel>Department</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a user" />
+                          <SelectValue placeholder="Select Dept." />
                         </SelectTrigger>
                       </FormControl>
+
                       <SelectContent>
-                        <SelectItem value="m@example.com">
-                          m@example.com
-                        </SelectItem>
-                        <SelectItem value="m@google.com">
-                          m@google.com
-                        </SelectItem>
-                        <SelectItem value="m@support.com">
-                          m@support.com
-                        </SelectItem>
+                        {departments.map((dept) => (
+                          <SelectItem
+                            className="text-sm font-kefa"
+                            key={dept}
+                            value={dept}
+                          >
+                            {dept}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -415,15 +429,11 @@ export default function BulkPropertyForm() {
                           <SelectValue placeholder="Department" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="m@example.com">
-                            m@example.com
-                          </SelectItem>
-                          <SelectItem value="m@google.com">
-                            m@google.com
-                          </SelectItem>
-                          <SelectItem value="m@support.com">
-                            m@support.com
-                          </SelectItem>
+                          {departments.map((dept) => (
+                            <SelectItem key={dept} value={dept}>
+                              {dept}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </td>
