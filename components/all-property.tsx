@@ -223,6 +223,7 @@ export default function AllPropertyList() {
           <TableHeader>
             {table.getHeaderGroups().map(headerGroup => (
               <TableRow key={headerGroup.id}>
+                <TableHead className="bg-muted text-muted-foreground px-4 py-2 justify-center">No</TableHead>
                 {headerGroup.headers.map(header => (
                   <TableHead key={header.id} className="bg-muted text-muted-foreground px-4 py-2">
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
@@ -233,8 +234,9 @@ export default function AllPropertyList() {
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map(row => (
+              table.getRowModel().rows.map((row, i) => (
                 <TableRow key={row.id} className="hover:bg-card">
+                  <TableCell className="text-center align-middle w-12">{i + 1}</TableCell>
                   {row.getVisibleCells().map(cell => (
                     <TableCell key={cell.id} className="px-4 py-2">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}

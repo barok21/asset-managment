@@ -177,12 +177,77 @@ useEffect(() => {
         <DialogHeader>
           <DialogTitle>Request New Property</DialogTitle>
           <DialogDescription>
-            Fill in requester information once, then add multiple properties.
+            Fill in requester information once, then add one or multiple properties.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-8">
           {/* Requester Info Form */}
+          <section className="bg-card p-6 rounded-2xl border">
+            <h2 className="text-xl font-semibold mb-4">Requester Information</h2>
+            <Form {...requesterForm}>
+              <form>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={requesterForm.control}
+                    name="requestor_full_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Requestor Full Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. John Doe" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={requesterForm.control}
+                    name="department"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Department</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select department" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {departments.map((dept) => (
+                              <SelectItem key={dept} value={dept}>
+                                {dept}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={requesterForm.control}
+                    name="special_requirment"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Special Requirement</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Optional" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </form>
+            </Form>
+          </section>
+
           <section className="bg-card p-6 rounded-2xl border">
             <h2 className="text-xl font-semibold mb-4">Requester Information</h2>
             <Form {...requesterForm}>
@@ -266,48 +331,48 @@ useEffect(() => {
                 onSubmit={propertyForm.handleSubmit(addProperty)}
                 className="grid grid-cols-1 md:grid-cols-2 gap-6"
               >
-                     <FormField
-  control={propertyForm.control}
-  name="property_name"
-  render={({ field }) => (
-    <FormItem className="flex flex-col">
-      <FormLabel>Property Name</FormLabel>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            className={cn("justify-between", !field.value && "text-muted-foreground")}
-          >
-            {field.value || "Select a property"}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]">
-          <Command>
-            <CommandInput placeholder="Search property..." />
-            <CommandList>
-              <CommandEmpty>No property found.</CommandEmpty>
-              <CommandGroup>
-                {propertyOptions.map((item) => (
-                  <CommandItem
-                    key={item}
-                    value={item}
-                    onSelect={() => {
-                      field.onChange(item)
-                    }}
-                  >
-                    {item}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-      <FormMessage />
-    </FormItem>
-  )}
-/>
+                <FormField
+                  control={propertyForm.control}
+                  name="property_name"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Property Name</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn("justify-between", !field.value && "text-muted-foreground")}
+                          >
+                            {field.value || "Select a property"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]">
+                          <Command>
+                            <CommandInput placeholder="Search property..." />
+                            <CommandList>
+                              <CommandEmpty>No property found.</CommandEmpty>
+                              <CommandGroup>
+                                {propertyOptions.map((item) => (
+                                  <CommandItem
+                                    key={item}
+                                    value={item}
+                                    onSelect={() => {
+                                      field.onChange(item)
+                                    }}
+                                  >
+                                    {item}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                   
                 <FormField
                   control={propertyForm.control}

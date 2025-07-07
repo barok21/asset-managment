@@ -262,3 +262,71 @@ export const checkPropertyUsage = async (
 
   return [...new Set(data.map((d) => d.department))] // unique depts
 }
+
+// ✅ Group requests by request_batch_id and enrich with usage info
+export const fetchGroupedRequestedPropertiesWithUsage = async (): Promise<GroupedRequest[]> => {
+  const supabase = createSupaseClient()
+
+  const { data: requested, error } = await supabase
+    .from("request_property")
+    .select("*")
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    console.error("Error fetching requested properties:", error)
+    throw new Error(error.message)
+  }
+
+  if (!requested) return []
+
+  // Group by request_batch_id
+  const grouped: Record<string, Omit<GroupedRequest, "properties"> & { properties: requestProperty[] }> = {}
+
+  for (const item of requested) {
+    const batchId = item.request_batch_id
+
+    if (!grouped[batchId]) {
+      grouped[batchId] = {
+        request_batch_id: batchId,
+        department: item.department,
+        requestor_full_name: item.requestor_full_name,
+        special_requirment: item.special_requirment,
+        status: item.status ?? null,
+        created_at: item.created_at,
+        properties: [],
+      }
+    }
+
+    grouped[batchId].properties.push(item)
+  }
+
+  // Enrich each property with `usedInOtherDept`
+  const enriched: GroupedRequest[] = await Promise.all(
+    Object.values(grouped).map(async (group) => {
+      const properties = await Promise.all(
+        group.properties.map(async (p) => {
+          const used = await checkPropertyUsage(p.property_name, group.department)
+          return { ...p, usedInOtherDept: used }
+        })
+      )
+
+      return { ...group, properties }
+    })
+  )
+
+  return enriched
+}
+
+export const updateRequestItemStatus = async (
+  id: string,
+  status: "approved" | "rejected"
+) => {
+  const supabase = createSupaseClient()
+
+  const { error } = await supabase
+    .from("request_property")
+    .update({ status })
+    .eq("id", id)
+
+  if (error) throw new Error(error.message)
+}

@@ -58,12 +58,26 @@ interface CreateDept {
 }
 
 interface requestProperty {
-  requestor_full_name:string,
-  department: string,
-  property_name: string,
-  quantity: string,
-  special_requirment?: string,
+  id?: string               
+  property_name: string
+  quantity: string
+  approved_quantity?: number 
+  department: string
+  requestor_full_name: string
+  special_requirment?: string
   request_batch_id: string
+  created_at?: string   // ✅ optional
+  status?: string
+}
+
+type GroupedRequest = {
+  request_batch_id: string
+  department: string
+  requestor_full_name: string
+  special_requirment?: string
+  status: string | null
+  created_at: string
+  properties: (requestProperty & { usedInOtherDept: string[] })[]
 }
 
 interface GetAllProperties {
