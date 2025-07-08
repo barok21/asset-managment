@@ -5,14 +5,31 @@ import {
   updateApprovedQuantity,
   fetchGroupedRequestedPropertiesWithUsage,
   updateRequestItemStatus,
+  updateRequestStatus,
+  getDashboardStatistics,
+  type DashboardStatistics,
 } from "@/lib/actions/property.action"
+import { canApproveRejects, getUserRole, type UserRole } from "@/lib/actions/user.action"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
 import {
   CheckCircle,
   XCircle,
@@ -26,9 +43,12 @@ import {
   Calendar,
   TrendingUp,
   FileText,
-  LoaderIcon,
+  ChevronRight,
+  Shield,
+  MessageSquare,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { COMMON_REJECTION_REASONS } from "@/types/constants"
 
 interface PropertyItem {
   id: string
@@ -36,6 +56,7 @@ interface PropertyItem {
   quantity: number
   approved_quantity?: number
   status?: "approved" | "rejected" | "pending"
+  rejection_reason?: string
   usedInOtherDept: string[]
 }
 
@@ -45,28 +66,17 @@ interface RequestGroup {
   department: string
   special_requirment?: string
   status?: "approved" | "rejected" | "pending" | "partial"
+  overall_rejection_reason?: string
   created_at: string
   properties: PropertyItem[]
 }
 
-// Type for the API response
-interface GroupedRequest {
-  request_batch_id: string
-  requestor_full_name: string
-  department: string
-  special_requirment?: string
-  status?: string | null
-  created_at: string
-  properties: PropertyItem[]
-}
-
-interface DashboardStats {
-  totalRequests: number
-  totalApproved: number
-  totalRejected: number
-  totalPartial: number
-  totalPending: number
-  commonResources: Array<{ name: string; count: number; department: string }>
+interface RejectionDialogState {
+  isOpen: boolean
+  type: "item" | "batch"
+  itemId?: string
+  batchId?: string
+  itemName?: string
 }
 
 export default function RequestedPropertyAdminCards() {
@@ -75,40 +85,101 @@ export default function RequestedPropertyAdminCards() {
   const [processingItems, setProcessingItems] = useState<Set<string>>(new Set())
   const [selectedRequest, setSelectedRequest] = useState<RequestGroup | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
+  const [userRole, setUserRole] = useState<UserRole>("higher_manager")
+  const [canApprove, setCanApprove] = useState(false)
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const itemsPerPage = 8
+
+  // Rejection dialog state
+  const [rejectionDialog, setRejectionDialog] = useState<RejectionDialogState>({
+    isOpen: false,
+    type: "item",
+  })
+  const [rejectionReason, setRejectionReason] = useState("")
+  const [selectedCommonReason, setSelectedCommonReason] = useState("")
+  const [useCustomReason, setUseCustomReason] = useState(false)
+
+  // Dashboard statistics
+  const [dashboardStats, setDashboardStats] = useState<DashboardStatistics>({
     totalRequests: 0,
     totalApproved: 0,
     totalRejected: 0,
     totalPartial: 0,
     totalPending: 0,
+    totalItems: 0,
+    approvalRate: 0,
+    rejectionRate: 0,
+    pendingRate: 0,
     commonResources: [],
+    departmentStats: [],
+    recentActivity: [],
   })
 
   useEffect(() => {
-    const load = async () => {
+    const initializeUser = async () => {
       try {
-        setLoading(true)
-        const data: GroupedRequest[] = await fetchGroupedRequestedPropertiesWithUsage()
-
-        // Convert API response to our RequestGroup type and calculate overall status
-        const processedData: RequestGroup[] = data
-          .map((request: GroupedRequest) => ({
-            ...request,
-            status: calculateOverallStatus(request.properties),
-          }))
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-
-        setRequests(processedData)
-        setDashboardStats(calculateDashboardStats(processedData))
+        const role = await getUserRole()
+        const canApproveReqs = await canApproveRejects()
+        setUserRole(role)
+        setCanApprove(canApproveReqs)
       } catch (error) {
-        toast.error("Failed to load property requests")
-        console.error(error)
-      } finally {
-        setLoading(false)
+        console.error("Error getting user role:", error)
       }
     }
-    load()
+    initializeUser()
   }, [])
+
+  useEffect(() => {
+    loadRequests(1)
+    loadDashboardStats()
+  }, [])
+
+  const loadDashboardStats = async () => {
+    try {
+      const stats = await getDashboardStatistics()
+      setDashboardStats(stats)
+    } catch (error) {
+      console.error("Error loading dashboard stats:", error)
+    }
+  }
+
+  const loadRequests = async (page: number) => {
+    try {
+      if (page === 1) {
+        setLoading(true)
+      } else {
+        setLoadingMore(true)
+      }
+
+      const result = await fetchGroupedRequestedPropertiesWithUsage(page, itemsPerPage)
+
+      const processedData: RequestGroup[] = result.data.map((request: any) => ({
+        ...request,
+        status: calculateOverallStatus(request.properties),
+      }))
+
+      if (page === 1) {
+        setRequests(processedData)
+      } else {
+        setRequests((prev) => [...prev, ...processedData])
+      }
+
+      setCurrentPage(page)
+      setTotalPages(Math.ceil(result.total / itemsPerPage))
+      setHasMore(result.hasMore)
+    } catch (error) {
+      toast.error("Failed to load property requests")
+      console.error(error)
+    } finally {
+      setLoading(false)
+      setLoadingMore(false)
+    }
+  }
 
   const calculateOverallStatus = (properties: PropertyItem[]): "approved" | "rejected" | "pending" | "partial" => {
     const approvedCount = properties.filter((p) => p.status === "approved").length
@@ -122,52 +193,12 @@ export default function RequestedPropertyAdminCards() {
     return "pending"
   }
 
-  const calculateDashboardStats = (requests: RequestGroup[]): DashboardStats => {
-    const totalRequests = requests.length
-    const totalApproved = requests.filter((r) => r.status === "approved").length
-    const totalRejected = requests.filter((r) => r.status === "rejected").length
-    const totalPartial = requests.filter((r) => r.status === "partial").length
-    const totalPending = requests.filter((r) => r.status === "pending").length
-
-    // Calculate common resources by department
-    const resourceMap = new Map<string, { count: number; departments: Set<string> }>()
-
-    requests.forEach((request) => {
-      request.properties.forEach((property) => {
-        const key = property.property_name
-        if (!resourceMap.has(key)) {
-          resourceMap.set(key, { count: 0, departments: new Set() })
-        }
-        const resource = resourceMap.get(key)!
-        resource.count += 1
-        resource.departments.add(request.department)
-      })
-    })
-
-    const commonResources = Array.from(resourceMap.entries())
-      .map(([name, data]) => ({
-        name,
-        count: data.count,
-        department: Array.from(data.departments).join(", "),
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5)
-
-    return {
-      totalRequests,
-      totalApproved,
-      totalRejected,
-      totalPartial,
-      totalPending,
-      commonResources,
-    }
-  }
-
-  const updateRequestStatus = (requestId: string, newStatus: string) => {
-    setRequests((prev) => prev.map((r) => (r.request_batch_id === requestId ? { ...r, status: newStatus as any } : r)))
-  }
-
   const handleQuantityChange = async (id: string, quantity: number, requestId: string) => {
+    if (!canApprove) {
+      toast.error("You don't have permission to modify quantities")
+      return
+    }
+
     if (quantity < 0) {
       toast.error("Quantity cannot be negative")
       return
@@ -176,23 +207,35 @@ export default function RequestedPropertyAdminCards() {
     try {
       await updateApprovedQuantity(id, quantity)
       toast.success("Approved quantity updated")
-    } catch (err) {
-      toast.error("Failed to update quantity")
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update quantity")
       console.error(err)
     }
   }
 
-  const handleItemStatusChange = async (itemId: string, status: "approved" | "rejected", groupId: string) => {
+  const handleItemStatusChange = async (
+    itemId: string,
+    status: "approved" | "rejected",
+    groupId: string,
+    reason?: string,
+  ) => {
+    if (!canApprove) {
+      toast.error("You don't have permission to approve/reject items")
+      return
+    }
+
     setProcessingItems((prev) => new Set(prev).add(itemId))
 
     try {
-      await updateRequestItemStatus(itemId, status)
+      await updateRequestItemStatus(itemId, status, reason)
       toast.success(`Property ${status}`)
 
       setRequests((prev) => {
         const updatedRequests = prev.map((g) => {
           if (g.request_batch_id === groupId) {
-            const updatedProperties = g.properties.map((p) => (p.id === itemId ? { ...p, status } : p))
+            const updatedProperties = g.properties.map((p) =>
+              p.id === itemId ? { ...p, status, rejection_reason: reason } : p,
+            )
             const newOverallStatus = calculateOverallStatus(updatedProperties)
             return {
               ...g,
@@ -203,16 +246,15 @@ export default function RequestedPropertyAdminCards() {
           return g
         })
 
-        // Update dashboard stats
-        setDashboardStats(calculateDashboardStats(updatedRequests))
         return updatedRequests
       })
 
-      // Update selected request if it's the same one
       if (selectedRequest?.request_batch_id === groupId) {
         setSelectedRequest((prev) => {
           if (!prev) return null
-          const updatedProperties = prev.properties.map((p) => (p.id === itemId ? { ...p, status } : p))
+          const updatedProperties = prev.properties.map((p) =>
+            p.id === itemId ? { ...p, status, rejection_reason: reason } : p,
+          )
           return {
             ...prev,
             properties: updatedProperties,
@@ -220,8 +262,11 @@ export default function RequestedPropertyAdminCards() {
           }
         })
       }
-    } catch (err) {
-      toast.error(`Failed to ${status} item`)
+
+      // Reload dashboard stats
+      loadDashboardStats()
+    } catch (err: any) {
+      toast.error(err.message || `Failed to ${status} item`)
       console.error(err)
     } finally {
       setProcessingItems((prev) => {
@@ -232,19 +277,64 @@ export default function RequestedPropertyAdminCards() {
     }
   }
 
-  const handleBatchStatusChange = async (batchId: string, status: "approved" | "rejected") => {
+  const handleBatchStatusChange = async (batchId: string, status: "approved" | "rejected", reason?: string) => {
+    if (!canApprove) {
+      toast.error("You don't have permission to approve/reject requests")
+      return
+    }
+
     try {
-      await updateRequestStatus(batchId, status)
+      await updateRequestStatus(batchId, status, reason)
       toast.success(`Request batch ${status}`)
       setRequests((prev) => {
-        const updatedRequests = prev.map((r) => (r.request_batch_id === batchId ? { ...r, status } : r))
-        setDashboardStats(calculateDashboardStats(updatedRequests))
+        const updatedRequests = prev.map((r) =>
+          r.request_batch_id === batchId ? { ...r, status, overall_rejection_reason: reason } : r,
+        )
         return updatedRequests
       })
-    } catch (err) {
-      toast.error("Failed to update request status")
+
+      // Reload dashboard stats
+      loadDashboardStats()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update request status")
       console.error(err)
     }
+  }
+
+  const openRejectionDialog = (type: "item" | "batch", itemId?: string, batchId?: string, itemName?: string) => {
+    setRejectionDialog({
+      isOpen: true,
+      type,
+      itemId,
+      batchId,
+      itemName,
+    })
+    setRejectionReason("")
+    setSelectedCommonReason("")
+    setUseCustomReason(false)
+  }
+
+  const handleRejectionConfirm = async () => {
+    const finalReason = useCustomReason ? rejectionReason : selectedCommonReason
+
+    if (!finalReason.trim()) {
+      toast.error("Please provide a reason for rejection")
+      return
+    }
+
+    if (rejectionDialog.type === "item" && rejectionDialog.itemId) {
+      const request = requests.find((r) => r.properties.some((p) => p.id === rejectionDialog.itemId))
+      if (request) {
+        await handleItemStatusChange(rejectionDialog.itemId, "rejected", request.request_batch_id, finalReason)
+      }
+    } else if (rejectionDialog.type === "batch" && rejectionDialog.batchId) {
+      await handleBatchStatusChange(rejectionDialog.batchId, "rejected", finalReason)
+    }
+
+    setRejectionDialog({ isOpen: false, type: "item" })
+    setRejectionReason("")
+    setSelectedCommonReason("")
+    setUseCustomReason(false)
   }
 
   const getStatusIcon = (status?: string) => {
@@ -295,11 +385,22 @@ export default function RequestedPropertyAdminCards() {
     })
   }
 
+  const getRoleDisplay = (role: UserRole) => {
+    const roleMap = {
+      department_user: "Department User",
+      finance_manager: "Finance Manager",
+      property_manager: "Property Manager",
+      higher_manager: "Higher Manager",
+      admin: "Administrator",
+    }
+    return roleMap[role] || role
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex items-center gap-2">
-          <LoaderIcon className="h-6 w-6 animate-pulse" />
+          <Loader2 className="h-6 w-6 animate-spin" />
           <span>Loading property requests...</span>
         </div>
       </div>
@@ -321,11 +422,21 @@ export default function RequestedPropertyAdminCards() {
   const PropertyDetailView = ({ request }: { request: RequestGroup }) => (
     <div className="space-y-4">
       {request.special_requirment && (
-        <div className="flex items-start gap-2 p-3 bg-yellow-500 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+        <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
           <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
           <div>
             <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Special Requirement</p>
             <p className="text-sm text-yellow-700 dark:text-yellow-300">{request.special_requirment}</p>
+          </div>
+        </div>
+      )}
+
+      {request.overall_rejection_reason && (
+        <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
+          <MessageSquare className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-red-800 dark:text-red-200">Overall Rejection Reason</p>
+            <p className="text-sm text-red-700 dark:text-red-300">{request.overall_rejection_reason}</p>
           </div>
         </div>
       )}
@@ -346,11 +457,20 @@ export default function RequestedPropertyAdminCards() {
                   #{idx + 1} {item.property_name}
                 </p>
                 <p className="text-xs text-muted-foreground">Requested: {item.quantity} units</p>
-                {item.usedInOtherDept.length > 0 && (
+                {Array.isArray(item.usedInOtherDept) && item.usedInOtherDept.length > 0 && (
                   <div className="flex items-center gap-1">
                     <AlertTriangle className="h-3 w-3 text-amber-500" />
                     <p className="text-xs text-amber-600 dark:text-amber-400">
-                      Used in: {item.usedInOtherDept.join(", ")}
+                      Used in other departments: {item.usedInOtherDept.join(", ")}
+                    </p>
+                  </div>
+                )}
+
+                {item.rejection_reason && (
+                  <div className="flex items-start gap-1 mt-2">
+                    <MessageSquare className="h-3 w-3 text-red-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-red-600 dark:text-red-400">
+                      <span className="font-medium">Rejection reason:</span> {item.rejection_reason}
                     </p>
                   </div>
                 )}
@@ -360,78 +480,83 @@ export default function RequestedPropertyAdminCards() {
               </Badge>
             </div>
 
-            <div className="flex items-end gap-2">
-              <div className="flex-1">
-                <label className="text-xs text-muted-foreground block mb-1">Approved Quantity</label>
-                <Input
-                  type="number"
-                  min="0"
-                  defaultValue={item.approved_quantity ?? item.quantity}
-                  className="h-8 text-sm"
-                  onBlur={(e) => {
-                    const value = Number.parseInt(e.target.value)
-                    if (!isNaN(value)) {
-                      handleQuantityChange(item.id, value, request.request_batch_id)
-                    }
-                  }}
-                  disabled={item.status === "rejected"}
-                />
+            {canApprove && (
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <label className="text-xs text-muted-foreground block mb-1">Approved Quantity</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    defaultValue={item.approved_quantity ?? item.quantity}
+                    className="h-8 text-sm"
+                    onBlur={(e) => {
+                      const value = Number.parseInt(e.target.value)
+                      if (!isNaN(value)) {
+                        handleQuantityChange(item.id, value, request.request_batch_id)
+                      }
+                    }}
+                    disabled={item.status === "rejected"}
+                  />
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-2 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                    disabled={item.status === "approved" || processingItems.has(item.id)}
+                    onClick={() => handleItemStatusChange(item.id, "approved", request.request_batch_id)}
+                  >
+                    {processingItems.has(item.id) ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <CheckCircle className="h-3 w-3" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-2 text-xs bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+                    disabled={item.status === "rejected" || processingItems.has(item.id)}
+                    onClick={() => openRejectionDialog("item", item.id, undefined, item.property_name)}
+                  >
+                    {processingItems.has(item.id) ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <XCircle className="h-3 w-3" />
+                    )}
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-2 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
-                  disabled={item.status === "approved" || processingItems.has(item.id)}
-                  onClick={() => handleItemStatusChange(item.id, "approved", request.request_batch_id)}
-                >
-                  {processingItems.has(item.id) ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <CheckCircle className="h-3 w-3" />
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-2 text-xs bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
-                  disabled={item.status === "rejected" || processingItems.has(item.id)}
-                  onClick={() => handleItemStatusChange(item.id, "rejected", request.request_batch_id)}
-                >
-                  {processingItems.has(item.id) ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <XCircle className="h-3 w-3" />
-                  )}
-                </Button>
-              </div>
-            </div>
+            )}
           </div>
         ))}
       </div>
 
-      <Separator />
-
-      <div className="flex gap-2 justify-end">
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={request.status === "rejected"}
-          onClick={() => handleBatchStatusChange(request.request_batch_id, "rejected")}
-          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-        >
-          <XCircle className="h-4 w-4 mr-1" />
-          Reject All
-        </Button>
-        <Button
-          size="sm"
-          disabled={request.status === "approved"}
-          onClick={() => handleBatchStatusChange(request.request_batch_id, "approved")}
-        >
-          <CheckCircle className="h-4 w-4 mr-1" />
-          Approve All
-        </Button>
-      </div>
+      {canApprove && (
+        <>
+          <Separator />
+          <div className="flex gap-2 justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={request.status === "rejected"}
+              onClick={() => openRejectionDialog("batch", undefined, request.request_batch_id)}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <XCircle className="h-4 w-4 mr-1" />
+              Reject All
+            </Button>
+            <Button
+              size="sm"
+              disabled={request.status === "approved"}
+              onClick={() => handleBatchStatusChange(request.request_batch_id, "approved")}
+            >
+              <CheckCircle className="h-4 w-4 mr-1" />
+              Approve All
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   )
 
@@ -442,21 +567,29 @@ export default function RequestedPropertyAdminCards() {
           <h1 className="text-2xl font-bold">Property Requests Dashboard</h1>
           <p className="text-muted-foreground">Review and manage property requests from departments</p>
         </div>
-        <Badge variant="outline" className="text-sm">
-          {requests.length} request{requests.length !== 1 ? "s" : ""}
-        </Badge>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-muted-foreground" />
+            <Badge variant="outline" className="text-sm">
+              {getRoleDisplay(userRole)}
+            </Badge>
+          </div>
+          <Badge variant="outline" className="text-sm">
+            {dashboardStats.totalRequests} request{dashboardStats.totalRequests !== 1 ? "s" : ""}
+          </Badge>
+        </div>
       </div>
 
-      {/* Dashboard Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5  mb-8 *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-5">
-        <Card className="bg-card">
+      {/* Enhanced Dashboard Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{dashboardStats.totalRequests}</div>
-            <p className="text-xs text-muted-foreground">All time requests</p>
+            <p className="text-xs text-muted-foreground">{dashboardStats.totalItems} total items</p>
           </CardContent>
         </Card>
 
@@ -467,11 +600,7 @@ export default function RequestedPropertyAdminCards() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{dashboardStats.totalApproved}</div>
-            <p className="text-xs text-muted-foreground">
-              {dashboardStats.totalRequests > 0
-                ? `${Math.round((dashboardStats.totalApproved / dashboardStats.totalRequests) * 100)}% of total`
-                : "0% of total"}
-            </p>
+            <p className="text-xs text-muted-foreground">{dashboardStats.approvalRate.toFixed(1)}% approval rate</p>
           </CardContent>
         </Card>
 
@@ -482,11 +611,7 @@ export default function RequestedPropertyAdminCards() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{dashboardStats.totalRejected}</div>
-            <p className="text-xs text-muted-foreground">
-              {dashboardStats.totalRequests > 0
-                ? `${Math.round((dashboardStats.totalRejected / dashboardStats.totalRequests) * 100)}% of total`
-                : "0% of total"}
-            </p>
+            <p className="text-xs text-muted-foreground">{dashboardStats.rejectionRate.toFixed(1)}% rejection rate</p>
           </CardContent>
         </Card>
 
@@ -508,107 +633,117 @@ export default function RequestedPropertyAdminCards() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">{dashboardStats.totalPending}</div>
-            <p className="text-xs text-muted-foreground">Awaiting review</p>
+            <p className="text-xs text-muted-foreground">{dashboardStats.pendingRate.toFixed(1)}% pending rate</p>
           </CardContent>
         </Card>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-4">
-            {/* Latest Request - Large Card */}
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Calendar className="h-5 w-5" />
-          Latest Request
-        </h2>
-        <Card className="bg-card ">
-          <CardHeader className="pb-4">
-            <div className="flex items-start justify-between">
-              <div className="space-y-2">
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  {latestRequest.requestor_full_name}
-                </CardTitle>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Building className="h-4 w-4" />
-                    {latestRequest.department}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    {formatDate(latestRequest.created_at)}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Latest Request - Large Card */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Latest Request
+          </h2>
+          <Card className={cn("shadow-lg border-2")}>
+            <CardHeader className="pb-4">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    {latestRequest.requestor_full_name}
+                  </CardTitle>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Building className="h-4 w-4" />
+                      {latestRequest.department}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      {formatDate(latestRequest.created_at)}
+                    </div>
                   </div>
                 </div>
+                <div className="flex items-center gap-2">
+                  {getStatusIcon(latestRequest.status)}
+                  <Badge variant={getStatusVariant(latestRequest.status)} className="text-sm">
+                    {latestRequest.status || "pending"}
+                  </Badge>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                {getStatusIcon(latestRequest.status)}
-                <Badge variant={getStatusVariant(latestRequest.status)} className="text-sm">
-                  {latestRequest.status || "pending"}
-                </Badge>
+
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full" />
+                  {latestRequest.properties.filter((p) => p.status === "approved").length} approved
+                </span>
+                <span className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-red-500 rounded-full" />
+                  {latestRequest.properties.filter((p) => p.status === "rejected").length} rejected
+                </span>
+                <span className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full" />
+                  {latestRequest.properties.filter((p) => !p.status || p.status === "pending").length} pending
+                </span>
               </div>
-            </div>
+            </CardHeader>
 
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full" />
-                {latestRequest.properties.filter((p) => p.status === "approved").length} approved
-              </span>
-              <span className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-red-500 rounded-full" />
-                {latestRequest.properties.filter((p) => p.status === "rejected").length} rejected
-              </span>
-              <span className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full" />
-                {latestRequest.properties.filter((p) => !p.status || p.status === "pending").length} pending
-              </span>
-            </div>
-          </CardHeader>
+            <CardContent>
+              <PropertyDetailView request={latestRequest} />
+            </CardContent>
+          </Card>
+        </div>
 
-          <CardContent>
-            <PropertyDetailView request={latestRequest} />
-          </CardContent>
-        </Card>
+        {/* Common Resources */}
+        <div className="pt-11">
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Most Requested Resources
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">Top resources across all departments</p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {dashboardStats.commonResources.slice(0, 5).map((resource, index) => (
+                  <div key={resource.name} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-6 h-6 bg-primary text-primary-foreground rounded-full text-xs font-bold">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <p className="font-medium">{resource.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {resource.departments.join(", ")} • {resource.totalQuantity} units
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="font-mono">
+                      {resource.count} requests
+                    </Badge>
+                  </div>
+                ))}
+                {dashboardStats.commonResources.length === 0 && (
+                  <p className="text-center text-muted-foreground py-4">No resource data available</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-      {/* Common Resources */}
-      <div className="pt-11 flex-auto">
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Most Requested Resources
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">Top 5 most commonly requested items across departments</p>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {dashboardStats.commonResources.map((resource, index) => (
-              <div key={resource.name} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-6 h-6 bg-primary text-primary-foreground rounded-full text-xs font-bold">
-                    {index + 1}
-                  </div>
-                  <div>
-                    <p className="font-medium">{resource.name}</p>
-                    <p className="text-sm text-muted-foreground">Departments: {resource.department}</p>
-                  </div>
-                </div>
-                <Badge variant="outline" className="font-mono">
-                  {resource.count} requests
-                </Badge>
-              </div>
-            ))}
-            {dashboardStats.commonResources.length === 0 && (
-              <p className="text-center text-muted-foreground py-4">No resource data available</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    
 
-      
-      {/* Other Requests - Mini Cards */}
+      {/* Other Requests - Mini Cards with Pagination */}
       {otherRequests.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold mb-4">Previous Requests</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 gap-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Previous Requests</h2>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              Page {currentPage} of {totalPages}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
             {otherRequests.map((request) => (
               <Dialog
                 key={request.request_batch_id}
@@ -621,8 +756,7 @@ export default function RequestedPropertyAdminCards() {
                 <DialogTrigger asChild>
                   <Card
                     className={cn(
-                      "cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-[1.02] border bg-card",
-                      
+                      "cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-[1.02] border"
                     )}
                     onClick={() => {
                       setSelectedRequest(request)
@@ -664,7 +798,7 @@ export default function RequestedPropertyAdminCards() {
                   </Card>
                 </DialogTrigger>
 
-                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto pt-10 hide-scrollbar">
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                       <User className="h-5 w-5" />
@@ -686,11 +820,107 @@ export default function RequestedPropertyAdminCards() {
               </Dialog>
             ))}
           </div>
+
+          {/* Pagination Controls */}
+          {hasMore && (
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                onClick={() => loadRequests(currentPage + 1)}
+                disabled={loadingMore}
+                className="flex items-center gap-2"
+              >
+                {loadingMore ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronRight className="h-4 w-4" />}
+                Load More Requests
+              </Button>
+            </div>
+          )}
         </div>
       )}
+
+      {/* Enhanced Rejection Reason Dialog */}
+      <AlertDialog
+        open={rejectionDialog.isOpen}
+        onOpenChange={(open) => setRejectionDialog((prev) => ({ ...prev, isOpen: open }))}
+      >
+        <AlertDialogContent className="max-w-2xl pt-12">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reject {rejectionDialog.type === "item" ? "Item" : "Request"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {rejectionDialog.type === "item"
+                ? `Please provide a reason for rejecting "${rejectionDialog.itemName}".`
+                : "Please provide a reason for rejecting this entire request."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="py-4 space-y-4">
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Select a common reason or provide custom reason:</Label>
+
+             <RadioGroup
+                value={useCustomReason ? "custom" : selectedCommonReason}
+                onValueChange={(value) => {
+                  if (value === "custom") {
+                    setUseCustomReason(true)
+                    setSelectedCommonReason("")
+                  } else {
+                    setUseCustomReason(false)
+                    setSelectedCommonReason(value)
+                    setRejectionReason("")
+                  }
+                }}
+                className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+              >
+                {COMMON_REJECTION_REASONS.map((reason) => (
+                  <Label
+                    key={reason}
+                    htmlFor={reason}
+                    className="flex items-center gap-3 p-4 border rounded-2xl cursor-pointer transition-all hover:bg-muted/50 data-[state=checked]:bg-primary/10 data-[state=checked]:border-primary"
+                  >
+                    <RadioGroupItem value={reason} id={reason} className="mt-0.5" />
+                    <span className="text-sm">{reason}</span>
+                  </Label>
+                ))}
+
+                <Label
+                  htmlFor="custom"
+                  className="flex items-center gap-3 p-4 border rounded-2xl cursor-pointer transition-all hover:bg-muted/50 data-[state=checked]:bg-primary/10 data-[state=checked]:border-primary"
+                >
+                  <RadioGroupItem value="custom" id="custom" className="mt-0.5" />
+                  <span className="text-sm">Custom reason</span>
+                </Label>
+              </RadioGroup>
+
+            </div>
+
+            {useCustomReason && (
+              <div className="space-y-2">
+                <Label htmlFor="customReason" className="text-sm font-medium">
+                  Custom rejection reason:
+                </Label>
+                <Textarea
+                  id="customReason"
+                  placeholder="Enter your custom rejection reason..."
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  className="min-h-[100px]"
+                />
+              </div>
+            )}
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRejectionConfirm}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={!useCustomReason ? !selectedCommonReason : !rejectionReason.trim()}
+            >
+              Reject with Reason
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
-      </div>
-      </div>
-    
   )
 }

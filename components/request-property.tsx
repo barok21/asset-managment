@@ -40,7 +40,7 @@ import { Separator } from "./ui/separator"
 import { Trash2, Plus } from "lucide-react"
 import { TextShimmer } from "./motion-primitives/text-shimmer"
 import { toast } from "sonner"
-import { getAllProperties, getDepartments, requestProperty as submitRequestProperty } from "@/lib/actions/property.action"
+import { getAllProperties, getDepartments, requestProperties as submitRequestProperty } from "@/lib/actions/property.action"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 
 const requesterSchema = z.object({

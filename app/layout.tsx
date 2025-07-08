@@ -7,21 +7,22 @@ import { dark } from '@clerk/themes'
 import { Toaster } from "sonner";
 
 import localFont from "next/font/local"
+import OnboardingWrapper from "@/components/onboarding-wrapper"
 
 export const kefa = localFont({
   src: "fonts/kefa-bold.ttf",
   variable: "--font-kefa",
   display: "swap",
 });
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+// const geistSans = Geist({
+//   variable: "--font-geist-sans",
+//   subsets: ["latin"],
+// });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// const geistMono = Geist_Mono({
+//   variable: "--font-geist-mono",
+//   subsets: ["latin"],
+// });
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -36,7 +37,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={kefa.variable}>
       <body
-        className={`${geistSans.variable} ${kefa.variable} ${geistMono.variable} antialiased`}
+        className={`${kefa.variable} antialiased`}
       >
         <ClerkProvider 
           appearance={{
@@ -52,7 +53,7 @@ export default function RootLayout({
             disableTransitionOnChange
             >
               <Toaster theme="system" position="bottom-right"/>
-        {children}
+        <OnboardingWrapper>{children}</OnboardingWrapper>
       </ThemeProvider>
             {/* </SidebarProvider> */}
                 </ClerkProvider>

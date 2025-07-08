@@ -12,3 +12,17 @@ export const UOM_OPTIONS = [
 ] as const;
 
 export type UoM = typeof UOM_OPTIONS[number]["label"];
+
+export const COMMON_REJECTION_REASONS = [
+  "Insufficient budget allocation",
+  "Item not available in inventory",
+  "Request exceeds department quota",
+  "Alternative solution recommended",
+  "Requires additional approval",
+  "Duplicate request already processed",
+  "Item not essential for operations",
+  "Vendor/supplier issues",
+  "Policy violation",
+  "Incomplete request information",
+]
+
