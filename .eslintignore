@@ -1,0 +1,4 @@
+app/layout.tsx
+app/property/page.tsx
+app/property/new/page.tsx
+app/property/request_property/page.tsx
