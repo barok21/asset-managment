@@ -22,8 +22,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Loader2, Search, Shield, Users, Edit, Crown } from 'lucide-react'
+import { Loader2, Search, Shield, Users, Edit, Crown, Home } from 'lucide-react'
 import { getAllUsers, updateUserRole, type UserProfile, type UserRole } from "@/lib/actions/user.action"
+import Link from "next/link"
+import { Separator } from "./ui/separator"
 
 const roleHierarchy: Record<UserRole, number> = {
   department_user: 1,
@@ -58,7 +60,7 @@ export default function UserRoleManagement({ currentUserRole }: UserRoleManageme
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null)
-  const [newRole, setNewRole] = useState<UserRole>("higher_manager")
+  const [newRole, setNewRole] = useState<UserRole>("department_user")
   const [updating, setUpdating] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
@@ -130,22 +132,27 @@ export default function UserRoleManagement({ currentUserRole }: UserRoleManageme
     user.department.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span>Loading users...</span>
-        </div>
-      </div>
-    )
-  }
+  // if (loading) {
+  //   return (
+  //     <div className="flex items-center justify-center min-h-[400px]">
+  //       <div className="flex items-center gap-2">
+  //         <Loader2 className="h-6 w-6 animate-spin" />
+  //         <span>Loading users...</span>
+  //       </div>
+  //     </div>
+  //   )
+  // }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
+        <div className="">
+          <Button variant={"outline"} size={"sm"} className="">
+            <Link href="/dashboard" className="flex gap-3">
+            <Home/> <p>Go to dashboard</p>
+            </Link>
+          </Button>
+          <h2 className="text-2xl font-bold flex items-center gap-2 pt-20">
             <Crown className="h-6 w-6" />
             User Role Management
           </h2>
@@ -225,13 +232,14 @@ export default function UserRoleManagement({ currentUserRole }: UserRoleManageme
                           <DialogTitle>Update User Role</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4">
-                          <div>
+                          <div className="space-y-1">
                             <p className="text-sm text-muted-foreground">User: {selectedUser?.fullName}</p>
-                            <p className="text-sm text-muted-foreground">Current Role: {selectedUser && roleLabels[selectedUser.role as UserRole]}</p>
+                            <p className="text-sm text-muted-foreground ">Current Role: <Badge variant={"outline"} className="rounded-sm">{selectedUser && roleLabels[selectedUser.role as UserRole]}</Badge></p>
                           </div>
+                            <Separator/>
                           
                           <div className="space-y-2">
-                            <label className="text-sm font-medium">New Role</label>
+                            <label className="text-sm font-medium">Set new Role</label>
                             <Select value={newRole} onValueChange={(value) => setNewRole(value as UserRole)}>
                               <SelectTrigger>
                                 <SelectValue />

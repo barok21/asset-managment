@@ -131,8 +131,8 @@ export const updateUserRole = async (userId: string, newRole: UserRole) => {
     department_user: 1,
     finance_manager: 2,
     property_manager: 2,
-    higher_manager: 3,
-    admin: 4,
+    admin: 3,
+    higher_manager: 4,
   }
 
   const currentUserLevel = roleHierarchy[currentUserProfile.role]
@@ -167,7 +167,7 @@ export const getUserRole = async (): Promise<UserRole> => {
 // Check if user can approve/reject requests
 export const canApproveRejects = async (): Promise<boolean> => {
   const role = await getUserRole()
-  return ["finance_man  ager", "property_manager", "higher_manager", "admin"].includes(role)
+  return ["finance_manager", "property_manager", "higher_manager", "admin"].includes(role)
 }
 
 // Check if user profile exists

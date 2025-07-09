@@ -171,8 +171,8 @@ const data = {
           url: "/setting",
         },
         {
-          title: "Team",
-          url: "#",
+          title: "Role",
+          url: "/setting/role",
         },
         {
           title: "Billing",

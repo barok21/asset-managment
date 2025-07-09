@@ -93,7 +93,7 @@ export default function RequestedPropertyAdminCards() {
   const [totalPages, setTotalPages] = useState(1)
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
-  const itemsPerPage = 8
+  const itemsPerPage = 5
 
   // Rejection dialog state
   const [rejectionDialog, setRejectionDialog] = useState<RejectionDialogState>({
@@ -569,7 +569,7 @@ export default function RequestedPropertyAdminCards() {
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-muted-foreground" />
+            <Shield className="h-5 w-5 text-sky-500"/>
             <Badge variant="outline" className="text-sm">
               {getRoleDisplay(userRole)}
             </Badge>
@@ -582,14 +582,25 @@ export default function RequestedPropertyAdminCards() {
 
       {/* Enhanced Dashboard Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-        <Card>
+          <Card className="bg-gradient-to-r from-sky-900 to-emerald-900 text-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-2xl font-bold">Total Requests</CardTitle>
+              <FileText className="h-4 w-4 text-white/70" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{dashboardStats.totalRequests}</div>
+              <p className="text-xs text-white/70">{dashboardStats.totalItems} total items</p>
+            </CardContent>
+          </Card>
+
+         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <Clock className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dashboardStats.totalRequests}</div>
-            <p className="text-xs text-muted-foreground">{dashboardStats.totalItems} total items</p>
+            <div className="text-2xl font-bold text-yellow-600">{dashboardStats.totalPending}</div>
+            <p className="text-xs text-muted-foreground">{dashboardStats.pendingRate.toFixed(1)}% pending rate</p>
           </CardContent>
         </Card>
 
@@ -626,16 +637,6 @@ export default function RequestedPropertyAdminCards() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{dashboardStats.totalPending}</div>
-            <p className="text-xs text-muted-foreground">{dashboardStats.pendingRate.toFixed(1)}% pending rate</p>
-          </CardContent>
-        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -699,7 +700,7 @@ export default function RequestedPropertyAdminCards() {
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
+                <TrendingUp className="h-5 w-5 text-green-600" />
                 Most Requested Resources
               </CardTitle>
               <p className="text-sm text-muted-foreground">Top resources across all departments</p>
@@ -709,7 +710,7 @@ export default function RequestedPropertyAdminCards() {
                 {dashboardStats.commonResources.slice(0, 5).map((resource, index) => (
                   <div key={resource.name} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-6 h-6 bg-primary text-primary-foreground rounded-full text-xs font-bold">
+                      <div className="flex items-center justify-center w-6 h-6 bg-green-500 text-primary-foreground rounded-full text-xs font-bold">
                         {index + 1}
                       </div>
                       <div>
@@ -791,17 +792,17 @@ export default function RequestedPropertyAdminCards() {
 
                         <div className="flex items-center gap-1 pt-1">
                           <Eye className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">Click to view details</span>
+                          <span className="text-xs text-sky-600 ">Click to view details</span>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 </DialogTrigger>
 
-                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto pt-12 hide-scrollbar">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                      <User className="h-5 w-5" />
+                      <User className="h-10 w-10" />
                       {selectedRequest?.requestor_full_name} - {selectedRequest?.department}
                       <div className="flex items-center gap-1 ml-auto">
                         {getStatusIcon(selectedRequest?.status)}
@@ -853,7 +854,7 @@ export default function RequestedPropertyAdminCards() {
             </AlertDialogDescription>
           </AlertDialogHeader>
 
-          <div className="py-4 space-y-4">
+          <div className="py-4 space-y-4 overflow-auto max-h-[400px] hide-scrollbar">
             <div className="space-y-3">
               <Label className="text-sm font-medium">Select a common reason or provide custom reason:</Label>
 
@@ -875,7 +876,7 @@ export default function RequestedPropertyAdminCards() {
                   <Label
                     key={reason}
                     htmlFor={reason}
-                    className="flex items-center gap-3 p-4 border rounded-2xl cursor-pointer transition-all hover:bg-muted/50 data-[state=checked]:bg-primary/10 data-[state=checked]:border-primary"
+                    className="flex items-center gap-2 p-2 border border-orange-90 rounded-lg cursor-pointer transition-all hover:bg-muted/50 data-[state=checked]:bg-primary/10 data-[state=checked]:border-primary"
                   >
                     <RadioGroupItem value={reason} id={reason} className="mt-0.5" />
                     <span className="text-sm">{reason}</span>
@@ -884,7 +885,7 @@ export default function RequestedPropertyAdminCards() {
 
                 <Label
                   htmlFor="custom"
-                  className="flex items-center gap-3 p-4 border rounded-2xl cursor-pointer transition-all hover:bg-muted/50 data-[state=checked]:bg-primary/10 data-[state=checked]:border-primary"
+                  className="flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition-all hover:bg-muted/50 data-[state=checked]:bg-primary/10 data-[state=checked]:border-primary"
                 >
                   <RadioGroupItem value="custom" id="custom" className="mt-0.5" />
                   <span className="text-sm">Custom reason</span>
@@ -913,7 +914,7 @@ export default function RequestedPropertyAdminCards() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleRejectionConfirm}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-rose-700 hover:bg-red-700 text-white"
               disabled={!useCustomReason ? !selectedCommonReason : !rejectionReason.trim()}
             >
               Reject with Reason
