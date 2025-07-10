@@ -168,7 +168,7 @@ export default function UserRoleManagement({ currentUserRole }: UserRoleManageme
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            All Users ({users.length})
+            All registerd users ({users.length})
           </CardTitle>
           <div className="flex items-center gap-4">
             <div className="relative flex-1 max-w-sm">
