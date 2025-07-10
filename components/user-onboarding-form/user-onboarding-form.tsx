@@ -65,7 +65,7 @@ export default function UserOnboardingForm({ departments, onComplete }: Onboardi
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-9 to-indigo-200 p-4">
       <Card className="w-full max-w-2xl shadow-xl">
         <CardHeader className="text-center space-y-2">
           <div className="mx-auto w-12 h-12 bg-primary rounded-full flex items-center justify-center">
