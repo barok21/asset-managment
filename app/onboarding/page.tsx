@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 import { checkUserProfileExists } from "@/lib/actions/user.action"
 import { getDepartments } from "@/lib/actions/property.action"
-import UserOnboardingForm from "@/components/user-onboarding-form"
+import ClientOnboardingForm from "@/components/user-onboarding-form/client-onboarding-form"
 
 export default async function OnboardingPage() {
   const { userId } = await auth()
@@ -18,12 +18,5 @@ export default async function OnboardingPage() {
 
   const departments = await getDepartments()
 
-  return (
-    <UserOnboardingForm
-      departments={departments}
-      onComplete={() => {
-        window.location.href = "/dashboard"
-      }}
-    />
-  )
+  return <ClientOnboardingForm departments={departments} /> // ✅ No function props passed
 }

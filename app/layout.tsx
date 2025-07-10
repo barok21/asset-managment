@@ -53,10 +53,10 @@ export default function RootLayout({
             disableTransitionOnChange
             >
               <Toaster theme="system" position="bottom-right"/>
-        <OnboardingWrapper>{children}</OnboardingWrapper>
+        {children}
       </ThemeProvider>
             {/* </SidebarProvider> */}
-                </ClerkProvider>
+      </ClerkProvider>
 
       </body>
     </html>

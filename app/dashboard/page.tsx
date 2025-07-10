@@ -9,9 +9,12 @@ import {
 } from "@/components/ui/sidebar"
 
 import data from "./data.json"
+import OnboardingWrapper from "@/components/onboarding-wrapper"
 
 export default function Page() {
   return (
+    <OnboardingWrapper>
+
     <SidebarProvider
       style={
         {
@@ -19,7 +22,7 @@ export default function Page() {
           "--header-height": "calc(var(--spacing) * 12)",
         } as React.CSSProperties
       }
-    >
+      >
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
@@ -36,5 +39,6 @@ export default function Page() {
         </div>
       </SidebarInset>
     </SidebarProvider>
+      </OnboardingWrapper>
   )
 }

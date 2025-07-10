@@ -2,10 +2,10 @@
 
 import { useOnboarding } from "@/hooks/use-onboarding"
 import { getDepartments } from "@/lib/actions/property.action"
-import UserOnboardingForm from "./user-onboarding-form"
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import RequestedPropertyAdminCards from "./RequestedPropertiesTable"
+import UserOnboardingForm from "./user-onboarding-form/user-onboarding-form"
 
 export default function DashboardWithOnboarding() {
   const { needsOnboarding, loading } = useOnboarding()
