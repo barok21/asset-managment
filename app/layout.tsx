@@ -5,24 +5,14 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { ClerkProvider } from '@clerk/nextjs'
 import { dark } from '@clerk/themes'
 import { Toaster } from "sonner";
-
 import localFont from "next/font/local"
-import OnboardingWrapper from "@/components/onboarding-wrapper"
 
-export const kefa = localFont({
+// ✅ define kefa locally, NOT exported
+const kefa = localFont({
   src: "fonts/kefa-bold.ttf",
   variable: "--font-kefa",
   display: "swap",
 });
-// const geistSans = Geist({
-//   variable: "--font-geist-sans",
-//   subsets: ["latin"],
-// });
-
-// const geistMono = Geist_Mono({
-//   variable: "--font-geist-mono",
-//   subsets: ["latin"],
-// });
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -36,28 +26,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className={kefa.variable}>
-      <body
-        className={`${kefa.variable} antialiased`}
-      >
+      <body className={`${kefa.variable} antialiased`}>
         <ClerkProvider 
-          appearance={{
-        baseTheme: dark,
-      }}
+          appearance={{ baseTheme: dark }}
         >
-        {/* <SidebarProvider> */}
-        {/* <AppSidebar/> */}
-        <ThemeProvider
+          <ThemeProvider
             attribute="class"
             defaultTheme="system"
             enableSystem
             disableTransitionOnChange
-            >
-              <Toaster theme="system" position="bottom-right"/>
-        {children}
-      </ThemeProvider>
-            {/* </SidebarProvider> */}
-      </ClerkProvider>
-
+          >
+            <Toaster theme="system" position="bottom-right" />
+            {children}
+          </ThemeProvider>
+        </ClerkProvider>
       </body>
     </html>
   );
