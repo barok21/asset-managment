@@ -15,10 +15,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-
 import {
   Command,
   CommandEmpty,
@@ -36,12 +34,22 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form"
-import { Separator } from "./ui/separator"
 import { Trash2, Plus } from "lucide-react"
 import { TextShimmer } from "./motion-primitives/text-shimmer"
 import { toast } from "sonner"
-import { getAllProperties, getDepartments, requestProperties as submitRequestProperty } from "@/lib/actions/property.action"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
+import {
+  getAllProperties,
+  getDepartments,
+  requestProperties as submitRequestProperty,
+} from "@/lib/actions/property.action"
+import { getUserProfile } from "@/lib/actions/user.action"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select"
 
 const requesterSchema = z.object({
   requestor_full_name: z.string().min(1, "Requestor full name is required"),
@@ -52,7 +60,6 @@ const requesterSchema = z.object({
 const propertySchema = z.object({
   property_name: z.string().min(1, "Property name is required"),
   quantity: z.string().min(1, "Quantity is required"),
-  
 })
 
 type RequesterFormData = z.infer<typeof requesterSchema>
@@ -64,30 +71,8 @@ const RequestProperty = () => {
   const [propertyOptions, setPropertyOptions] = useState<string[]>([])
   const [departments, setDepartments] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
+  const [formReady, setFormReady] = useState(false)
 
-useEffect(() => {
-  const fetchAll = async () => {
-    try {
-      const [departments, propertyResponse] = await Promise.all([
-        getDepartments(),
-        getAllProperties({ limit: 100, page: 1, category: "", dept_user: "" }),
-      ])
-
-      const propertyOptions = propertyResponse.property.map((p) => p.name) // Adjust key if needed
-
-      setDepartments(departments)
-      setPropertyOptions(propertyOptions)
-    } catch (err) {
-      console.error(err)
-      toast.error("Failed to load departments or properties")
-    }
-  }
-
-  fetchAll()
-}, [])
-
-
-  // Separate forms for requester info and property adding
   const requesterForm = useForm<RequesterFormData>({
     resolver: zodResolver(requesterSchema),
     defaultValues: {
@@ -105,8 +90,42 @@ useEffect(() => {
     },
   })
 
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        const profile = await getUserProfile()
+        if (profile) {
+          requesterForm.reset({
+            requestor_full_name: profile.fullName,
+            department: profile.department,
+            special_requirment: "",
+          })
+          setFormReady(true)
+        }
+
+        const [departments, propertyResponse] = await Promise.all([
+          getDepartments(),
+          getAllProperties({ limit: 100, page: 1, category: "", dept_user: "" }),
+        ])
+
+        const propertyOptions = propertyResponse.property.map((p) => p.name)
+        setDepartments(departments)
+        setPropertyOptions(propertyOptions)
+      } catch (err) {
+        console.error(err)
+        toast.error("Failed to load user profile, departments, or properties")
+      }
+    }
+
+    fetchAll()
+  }, [])
+
   const addProperty = (data: PropertyFormData) => {
-    // Validate requester info before adding properties
+    if (!formReady) {
+      toast.warning("Requester profile is still loading.")
+      return
+    }
+
     if (!requesterForm.getValues("requestor_full_name") || !requesterForm.getValues("department")) {
       toast.error("Please fill in Requester Full Name and Department first.")
       return
@@ -127,7 +146,6 @@ useEffect(() => {
       return
     }
 
-    // Validate requester info before submission
     const isRequesterValid = await requesterForm.trigger()
     if (!isRequesterValid) {
       toast.error("Please fix requester information errors.")
@@ -140,7 +158,6 @@ useEffect(() => {
     try {
       const requesterData = requesterForm.getValues()
 
-      // Combine requester info with each property item + batch id
       const payload = properties.map((p) => ({
         ...p,
         special_requirment: requesterData.special_requirment ?? "",
@@ -166,7 +183,9 @@ useEffect(() => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">Request Property</Button>
+        <Button className="border-2" variant="outline">
+        <Plus/>
+          Request Property</Button>
       </DialogTrigger>
 
       <DialogContent
@@ -181,13 +200,13 @@ useEffect(() => {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-8">
+        <div className="space-y-4">
           {/* Requester Info Form */}
           <section className="bg-card p-6 rounded-2xl border">
             <h2 className="text-xl font-semibold mb-4">Requester Information</h2>
             <Form {...requesterForm}>
               <form>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   <FormField
                     control={requesterForm.control}
                     name="requestor_full_name"
@@ -195,7 +214,7 @@ useEffect(() => {
                       <FormItem>
                         <FormLabel>Requestor Full Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. John Doe" {...field} />
+                          <Input {...field} disabled />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -210,7 +229,8 @@ useEffect(() => {
                         <FormLabel>Department</FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          value={field.value}
+                          disabled
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -225,85 +245,6 @@ useEffect(() => {
                             ))}
                           </SelectContent>
                         </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={requesterForm.control}
-                    name="special_requirment"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Special Requirement</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Optional" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </form>
-            </Form>
-          </section>
-
-          <section className="bg-card p-6 rounded-2xl border">
-            <h2 className="text-xl font-semibold mb-4">Requester Information</h2>
-            <Form {...requesterForm}>
-              <form>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={requesterForm.control}
-                    name="requestor_full_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Requestor Full Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g. John Doe" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={requesterForm.control}
-                    name="department"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Department</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select department" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {departments.map((dept) => (
-                              <SelectItem key={dept} value={dept}>
-                                {dept}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={requesterForm.control}
-                    name="special_requirment"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Special Requirement</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Optional" {...field} />
-                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -314,7 +255,7 @@ useEffect(() => {
           </section>
 
           {/* Property Adding Form */}
-          <section className="bg-card p-6 rounded-2xl border">
+          <section className="bg-card p-4 rounded-2xl border">
             <h2 className="text-xl font-semibold mb-4 flex items-center justify-between">
               <span>Add Property</span>
               <Button
@@ -357,9 +298,7 @@ useEffect(() => {
                                   <CommandItem
                                     key={item}
                                     value={item}
-                                    onSelect={() => {
-                                      field.onChange(item)
-                                    }}
+                                    onSelect={() => field.onChange(item)}
                                   >
                                     {item}
                                   </CommandItem>
@@ -373,7 +312,7 @@ useEffect(() => {
                     </FormItem>
                   )}
                 />
-                  
+
                 <FormField
                   control={propertyForm.control}
                   name="quantity"
@@ -387,8 +326,9 @@ useEffect(() => {
                     </FormItem>
                   )}
                 />
+
                 <div className="flex items-end">
-                  <Button type="submit" disabled={loading} className="w-full cursor-pointer">
+                  <Button type="submit" disabled={loading || !formReady} className="w-full cursor-pointer">
                     <Plus className="mr-2 h-4 w-4" />
                     Add Property
                   </Button>
@@ -402,10 +342,10 @@ useEffect(() => {
                 <table className="w-full text-sm">
                   <thead className="bg-muted/40">
                     <tr>
-                      <th className="p-2 text-center">No</th>
-                      <th className="p-2 text-left">Property</th>
-                      <th className="p-2 text-center">Qty</th>
-                      <th className="p-2 text-center">Remove</th>
+                      <th scope="col" className="p-2 text-center">No</th>
+                      <th scope="col" className="p-2 text-left">Property</th>
+                      <th scope="col" className="p-2 text-center">Qty</th>
+                      <th scope="col" className="p-2 text-center">Remove</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -421,6 +361,7 @@ useEffect(() => {
                             size="icon"
                             className="text-red-500 h-6 w-6"
                             onClick={() => removeProperty(i)}
+                            aria-label={`Remove property ${prop.property_name}`}
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
@@ -431,7 +372,7 @@ useEffect(() => {
                 </table>
               </div>
             ) : (
-              <div className="text-muted-foreground text-center border-2 border-dashed p-5 rounded-xl mt-6">
+              <div className="text-muted-foreground text-center border-2 border-dashed p-5 rounded-xl mt-6 bg-muted/10">
                 <TextShimmer className="font-mono text-sm" duration={1}>
                   No property added yet ...
                 </TextShimmer>
@@ -449,7 +390,12 @@ useEffect(() => {
         </div>
 
         <DialogFooter className="flex justify-between pt-6">
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading} className="w-full rounded-full cursor-pointer">
+          <Button
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={loading}
+            className="w-full rounded-full cursor-pointer"
+          >
             Cancel
           </Button>
         </DialogFooter>

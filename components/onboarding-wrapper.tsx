@@ -1,20 +1,18 @@
 "use client"
-
 import { useEffect, useState } from "react"
 import { useUser } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
-import { checkUserProfileExists } from "@/lib/actions/user.action"
+import { checkUserProfileStatus } from "@/lib/actions/user.action"
 import { getDepartments } from "@/lib/actions/property.action"
-import { Loader2 } from "lucide-react"
+import { AlertTriangle, ContainerIcon, LoaderIcon } from "lucide-react"
 import UserOnboardingForm from "./user-onboarding-form/user-onboarding-form"
+import Image from "next/image"
 
-interface OnboardingWrapperProps {
-  children: React.ReactNode
-}
+type UserProfileStatus = "loading" | "not_exists" | "pending_approval" | "approved" | "rejected"
 
-export default function OnboardingWrapper({ children }: OnboardingWrapperProps) {
+export default function OnboardingWrapper({ children }: { children: React.ReactNode }) {
   const { user, isLoaded, isSignedIn } = useUser()
-  const [profileExists, setProfileExists] = useState<boolean | null>(null)
+  const [profileStatus, setProfileStatus] = useState<UserProfileStatus>("loading")
   const [departments, setDepartments] = useState<string[]>([])
   const router = useRouter()
 
@@ -28,40 +26,75 @@ export default function OnboardingWrapper({ children }: OnboardingWrapperProps) 
 
     const fetchData = async () => {
       try {
-        const [exists, depts] = await Promise.all([
-          checkUserProfileExists(user.id),
+        const [status, depts] = await Promise.all([
+          checkUserProfileStatus(user.id),
           getDepartments(),
         ])
-        setProfileExists(exists)
+        setProfileStatus(status)
         setDepartments(depts)
       } catch (err) {
         console.error(err)
+        setProfileStatus("not_exists")
       }
     }
 
     fetchData()
   }, [user, isLoaded, isSignedIn, router])
 
-  if (!isLoaded || profileExists === null) {
+  if (profileStatus === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+        <LoaderIcon className="w-5 h-5 animate-spin mr-2" />
         <span>Loading...</span>
       </div>
     )
   }
 
-  if (!profileExists) {
+  if (profileStatus === "not_exists") {
     return (
       <UserOnboardingForm
         departments={departments}
         onComplete={() => {
-          setProfileExists(true)
-          router.push("/dashboard")
+          setProfileStatus("pending_approval") // Mark as submitted
         }}
       />
     )
   }
+
+  if (profileStatus === "pending_approval") {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-center px-4">
+        <Image src="/images/review.png" alt="under review" width={80} height={80} />
+        <p className="text-lg font-medium">Your account is under review.</p>
+        <p className="text-sm text-muted-foreground mt-1">Please wait for approval.</p>
+        <div className="pt-2">
+          <LoaderIcon className="w-4 h-4 animate-spin text-green-600 mb-4" />
+        </div>
+         {/* <span className="text-muted-foreground text-sm font-kefa">
+        “ሁሉ በእርሱ ሆነ፥ ከሆነውም አንዳች ስንኳ ያለ እርሱ አልሆነም።”
+          </span> */}
+      </div>
+    )
+  }
+
+  if (profileStatus === "rejected") {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center text-center px-4">
+      <div className="text-orange-400 mb-4">
+        <AlertTriangle/>
+      </div>
+        
+      <p className="text-lg font-semibold text-red-600">Your account was Rejected.</p>
+      <p className="text-sm text-muted-foreground mt-1 max-w-md">
+        Unfortunately, your profile suspended. Please contact the administrator.
+      </p>
+      <div className="text-red-500 mb-4 pt-4">
+        <LoaderIcon className="w-6 h-6 animate-pulse" />
+      </div>
+    </div>
+  )
+}
+
 
   return <>{children}</>
 }

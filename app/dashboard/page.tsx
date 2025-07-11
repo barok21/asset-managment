@@ -39,6 +39,6 @@ export default function Page() {
         </div>
       </SidebarInset>
     </SidebarProvider>
-      </OnboardingWrapper>
+  </OnboardingWrapper>
   )
 }

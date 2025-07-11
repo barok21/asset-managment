@@ -3,7 +3,7 @@
 import { useOnboarding } from "@/hooks/use-onboarding"
 import { getDepartments } from "@/lib/actions/property.action"
 import { useEffect, useState } from "react"
-import { Loader2 } from "lucide-react"
+import { Loader2, Loader2Icon, LoaderIcon } from "lucide-react"
 import RequestedPropertyAdminCards from "./RequestedPropertiesTable"
 import UserOnboardingForm from "./user-onboarding-form/user-onboarding-form"
 
@@ -27,7 +27,7 @@ export default function DashboardWithOnboarding() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex items-center gap-2">
-          <Loader2 className="h-6 w-6 animate-spin" />
+          <LoaderIcon className="h-6 w-6 animate-spin" />
           <span>Loading...</span>
         </div>
       </div>

@@ -13,6 +13,8 @@ export const UOM_OPTIONS = [
 
 export type UoM = typeof UOM_OPTIONS[number]["label"];
 
+export type UserProfileStatus = "loading" | "not_exists" | "pending_approval" | "approved" | "rejected"
+
 export const COMMON_REJECTION_REASONS = [
   "Insufficient budget allocation",
   "Item not available in inventory",

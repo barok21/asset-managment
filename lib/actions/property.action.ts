@@ -524,4 +524,80 @@ export const fetchGroupedRequestedPropertiesWithUsage = async (
   return { data: enriched, total, hasMore }
 }
 
+// fpr only the department
+// export const fetchGroupedRequestedPropertiesWithUsage = async (
+//   page = 1,
+//   limit = 10,
+//   department?: string // 👈 optional filter
+// ): Promise<{ data: any[]; total: number; hasMore: boolean }> => {
+//   const supabase = createSupaseClient()
 
+//   // Step 1: Filter batch IDs
+//   let batchIdQuery = supabase
+//     .from("request_property")
+//     .select("request_batch_id")
+//     .order("created_at", { ascending: false })
+
+//   if (department) {
+//     batchIdQuery = batchIdQuery.eq("department", department)
+//   }
+
+//   const { data: batchIds, error: batchError } = await batchIdQuery
+
+//   if (batchError) {
+//     throw new Error(batchError.message)
+//   }
+
+//   const uniqueBatchIds = [...new Set(batchIds?.map((item) => item.request_batch_id) || [])]
+//   const total = uniqueBatchIds.length
+
+//   const startIndex = (page - 1) * limit
+//   const endIndex = startIndex + limit
+//   const paginatedBatchIds = uniqueBatchIds.slice(startIndex, endIndex)
+
+//   if (paginatedBatchIds.length === 0) {
+//     return { data: [], total, hasMore: false }
+//   }
+
+//   // Step 2: Fetch full data for those batch IDs
+//   const { data: requested, error } = await supabase
+//     .from("request_property")
+//     .select("*")
+//     .in("request_batch_id", paginatedBatchIds)
+//     .order("created_at", { ascending: false })
+
+//   if (error) {
+//     throw new Error(error.message)
+//   }
+
+//   if (!requested) return { data: [], total, hasMore: false }
+
+//   // Step 3: Group by request_batch_id
+//   const grouped: Record<string, any> = {}
+
+//   for (const item of requested) {
+//     const batchId = item.request_batch_id
+
+//     if (!grouped[batchId]) {
+//       grouped[batchId] = {
+//         request_batch_id: batchId,
+//         department: item.department,
+//         requestor_full_name: item.requestor_full_name,
+//         special_requirment: item.special_requirment,
+//         status: item.status ?? null,
+//         overall_rejection_reason: item.overall_rejection_reason ?? null,
+//         created_at: item.created_at,
+//         properties: [],
+//       }
+//     }
+
+//     grouped[batchId].properties.push(item)
+//   }
+
+//   const enriched = Object.values(grouped)
+//   enriched.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+//   const hasMore = endIndex < total
+
+//   return { data: enriched, total, hasMore }
+// }

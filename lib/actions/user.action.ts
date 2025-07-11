@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server"
 import { createSupaseClient } from "../supabase"
+import { UserProfileStatus } from "@/types/constants"
 
 export type UserRole = "department_user" | "finance_manager" | "property_manager" | "higher_manager" | "admin"
 
@@ -16,6 +17,7 @@ export interface UserProfile {
   role: UserRole
   createdAt: string
   updatedAt: string
+  status:string
 }
 
 export interface CreateUserProfileData {
@@ -87,6 +89,7 @@ export const getUserProfile = async (userId?: string): Promise<UserProfile | nul
     role: profile.role,
     createdAt: profile.created_at,
     updatedAt: profile.updated_at,
+    status:profile.status,
   }
 }
 
@@ -114,7 +117,50 @@ export const getAllUsers = async (): Promise<UserProfile[]> => {
     role: profile.role,
     createdAt: profile.created_at,
     updatedAt: profile.updated_at,
+    status:profile.status
   }))
+}
+
+export async function checkUserProfileStatus(userId: string): Promise<"not_exists" | "pending_approval" | "approved" | "rejected"> {
+  const supabase = createSupaseClient()
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .select("status")
+    .eq("user_id", userId)
+    .single()
+
+  if (error || !data) return "not_exists"
+
+  switch (data.status) {
+    case "approved":
+      return "approved"
+    case "rejected":
+      return "rejected"
+    case "pending":
+    default:
+      return "pending_approval"
+  }
+}
+
+
+// Update user status to approval
+export async function approveUser(userId: string) {
+  const supabase = createSupaseClient()
+  const { error } = await supabase
+    .from("user_profiles")
+    .update({ status: "approved" })
+    .eq("user_id", userId)
+  if (error) throw new Error(error.message)
+}
+
+// Update user status to rejection
+export async function rejectUser(userId: string) {
+  const supabase = createSupaseClient()
+  const { error } = await supabase
+    .from("user_profiles")
+    .update({ status: "rejected" })
+    .eq("user_id", userId)
+  if (error) throw new Error(error.message)
 }
 
 // Update user role

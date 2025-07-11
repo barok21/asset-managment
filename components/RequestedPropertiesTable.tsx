@@ -46,9 +46,11 @@ import {
   ChevronRight,
   Shield,
   MessageSquare,
+  LoaderIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { COMMON_REJECTION_REASONS } from "@/types/constants"
+import RequestProperty from "./request-property"
 
 interface PropertyItem {
   id: string
@@ -400,7 +402,7 @@ export default function RequestedPropertyAdminCards() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex items-center gap-2">
-          <Loader2 className="h-6 w-6 animate-spin" />
+          <LoaderIcon className="h-6 w-6 animate-spin" />
           <span>Loading property requests...</span>
         </div>
       </div>
@@ -636,9 +638,10 @@ export default function RequestedPropertyAdminCards() {
             <p className="text-xs text-muted-foreground">Mixed approval status</p>
           </CardContent>
         </Card>
-
       </div>
-
+      <div className="flex justify-end">
+            <RequestProperty />
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Latest Request - Large Card */}
         <div className="mb-8">
@@ -706,17 +709,17 @@ export default function RequestedPropertyAdminCards() {
               <p className="text-sm text-muted-foreground">Top resources across all departments</p>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
+              <div className="space-y-5">
                 {dashboardStats.commonResources.slice(0, 5).map((resource, index) => (
-                  <div key={resource.name} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-6 h-6 bg-green-500 text-primary-foreground rounded-full text-xs font-bold">
+                  <div key={resource.name} className="flex items-center justify-between p-5 bg-muted/50 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="flex items-center justify-center min-w-6 min-h-6 w-6 h-6 bg-green-500 text-primary-foreground rounded-full text-xs font-bold">
                         {index + 1}
                       </div>
                       <div>
                         <p className="font-medium">{resource.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {resource.departments.join(", ")} • {resource.totalQuantity} units
+                        <p className="text-xs text-muted-foreground">
+                          {resource.departments.join(" • ")} 
                         </p>
                       </div>
                     </div>

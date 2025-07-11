@@ -22,10 +22,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Loader2, Search, Shield, Users, Edit, Crown, Home } from 'lucide-react'
-import { getAllUsers, updateUserRole, type UserProfile, type UserRole } from "@/lib/actions/user.action"
+import { Loader2, Search, Shield, Users, Edit, Crown, Home, XCircle } from 'lucide-react'
 import Link from "next/link"
 import { Separator } from "./ui/separator"
+
+import {
+  getAllUsers,
+  updateUserRole,
+  approveUser,
+  rejectUser,
+  type UserProfile,
+  type UserRole,
+} from "@/lib/actions/user.action"
 
 const roleHierarchy: Record<UserRole, number> = {
   department_user: 1,
@@ -75,7 +83,6 @@ export default function UserRoleManagement({ currentUserRole }: UserRoleManageme
       setUsers(userData)
     } catch (error) {
       toast.error("Failed to load users")
-      console.error(error)
     } finally {
       setLoading(false)
     }
@@ -83,8 +90,6 @@ export default function UserRoleManagement({ currentUserRole }: UserRoleManageme
 
   const handleRoleUpdate = async () => {
     if (!selectedUser) return
-
-    // Check if current user can promote to this role
     const currentUserLevel = roleHierarchy[currentUserRole]
     const targetRoleLevel = roleHierarchy[newRole]
 
@@ -97,16 +102,15 @@ export default function UserRoleManagement({ currentUserRole }: UserRoleManageme
     try {
       await updateUserRole(selectedUser.userId, newRole)
       toast.success(`User role updated to ${roleLabels[newRole]}`)
-      
-      // Update local state
-      setUsers(prev => 
-        prev.map(user => 
-          user.userId === selectedUser.userId 
+
+      setUsers(prev =>
+        prev.map(user =>
+          user.userId === selectedUser.userId
             ? { ...user, role: newRole }
             : user
         )
       )
-      
+
       setIsDialogOpen(false)
       setSelectedUser(null)
     } catch (error: any) {
@@ -116,13 +120,42 @@ export default function UserRoleManagement({ currentUserRole }: UserRoleManageme
     }
   }
 
+  const handleApproveUser = async (userId: string) => {
+    try {
+      await approveUser(userId)
+      toast.success("User approved")
+      setUsers(prev =>
+        prev.map(user =>
+          user.userId === userId ? { ...user, status: "approved" } : user
+        )
+      )
+    } catch (error) {
+      toast.error("Approval failed")
+    }
+  }
+
+  const handleRejectUser = async (userId: string) => {
+    try {
+      await rejectUser(userId)
+      toast.success("User rejected")
+      setUsers(prev =>
+        prev.map(user =>
+          user.userId === userId ? { ...user, status: "rejected" } : user
+        )
+      )
+      setIsDialogOpen(false)
+    } catch (error) {
+      toast.error("Rejection failed")
+    }
+  }
+
   const canPromoteToRole = (role: UserRole): boolean => {
     const currentUserLevel = roleHierarchy[currentUserRole]
     const targetRoleLevel = roleHierarchy[role]
     return targetRoleLevel < currentUserLevel
   }
 
-  const availableRoles = Object.keys(roleHierarchy).filter(role => 
+  const availableRoles = Object.keys(roleHierarchy).filter(role =>
     canPromoteToRole(role as UserRole)
   ) as UserRole[]
 
@@ -132,31 +165,20 @@ export default function UserRoleManagement({ currentUserRole }: UserRoleManageme
     user.department.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  // if (loading) {
-  //   return (
-  //     <div className="flex items-center justify-center min-h-[400px]">
-  //       <div className="flex items-center gap-2">
-  //         <Loader2 className="h-6 w-6 animate-spin" />
-  //         <span>Loading users...</span>
-  //       </div>
-  //     </div>
-  //   )
-  // }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="">
-          <Button variant={"outline"} size={"sm"} className="">
+        <div>
+          <Button variant="outline" size="sm">
             <Link href="/dashboard" className="flex gap-3">
-            <Home/> <p>Go to dashboard</p>
+              <Home /> <p>Go to dashboard</p>
             </Link>
           </Button>
           <h2 className="text-2xl font-bold flex items-center gap-2 pt-20">
             <Crown className="h-6 w-6" />
             User Role Management
           </h2>
-          <p className="text-muted-foreground">Manage user roles and permissions</p>
+          <p className="text-muted-foreground">Manage user roles and approvals</p>
         </div>
         <Badge variant="outline" className="flex items-center gap-1">
           <Shield className="h-3 w-3" />
@@ -168,18 +190,16 @@ export default function UserRoleManagement({ currentUserRole }: UserRoleManageme
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            All registerd users ({users.length})
+            All registered users ({users.length})
           </CardTitle>
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search users..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+          <div className="relative max-w-sm mt-2">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search users..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
         </CardHeader>
 
@@ -191,6 +211,7 @@ export default function UserRoleManagement({ currentUserRole }: UserRoleManageme
                 <TableHead>Department</TableHead>
                 <TableHead>Position</TableHead>
                 <TableHead>Current Role</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -206,11 +227,25 @@ export default function UserRoleManagement({ currentUserRole }: UserRoleManageme
                   <TableCell>{user.department}</TableCell>
                   <TableCell>{user.position}</TableCell>
                   <TableCell>
-                    <Badge className={roleColors[user.role as UserRole]}>
-                      {roleLabels[user.role as UserRole]}
+                    <Badge className={roleColors[user.role]}>
+                      {roleLabels[user.role]}
                     </Badge>
                   </TableCell>
                   <TableCell>
+                    <Badge variant={user.status === "approved" ? "default" : "destructive"}>
+                      {user.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="space-x-2">
+                    {user.status === "pending" && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleApproveUser(user.userId)}
+                      >
+                        Approve
+                      </Button>
+                    )}
                     <Dialog open={isDialogOpen && selectedUser?.userId === user.userId} onOpenChange={setIsDialogOpen}>
                       <DialogTrigger asChild>
                         <Button
@@ -218,10 +253,10 @@ export default function UserRoleManagement({ currentUserRole }: UserRoleManageme
                           size="sm"
                           onClick={() => {
                             setSelectedUser(user)
-                            setNewRole(user.role as UserRole)
+                            setNewRole(user.role)
                             setIsDialogOpen(true)
                           }}
-                          disabled={!canPromoteToRole(user.role as UserRole) && user.role !== "department_user"}
+                          disabled={!canPromoteToRole(user.role) && user.role !== "department_user"}
                         >
                           <Edit className="h-3 w-3 mr-1" />
                           Edit Role
@@ -232,12 +267,14 @@ export default function UserRoleManagement({ currentUserRole }: UserRoleManageme
                           <DialogTitle>Update User Role</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4">
-                          <div className="space-y-1">
-                            <p className="text-sm text-muted-foreground">User: {selectedUser?.fullName}</p>
-                            <p className="text-sm text-muted-foreground ">Current Role: <Badge variant={"outline"} className="rounded-sm">{selectedUser && roleLabels[selectedUser.role as UserRole]}</Badge></p>
-                          </div>
-                            <Separator/>
-                          
+                          <p className="text-sm text-muted-foreground">User: {selectedUser?.fullName}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Current Role:
+                            <Badge variant="outline" className="ml-2 rounded-sm">
+                              {selectedUser && roleLabels[selectedUser.role]}
+                            </Badge>
+                          </p>
+                          <Separator />
                           <div className="space-y-2">
                             <label className="text-sm font-medium">Set new Role</label>
                             <Select value={newRole} onValueChange={(value) => setNewRole(value as UserRole)}>
@@ -253,25 +290,81 @@ export default function UserRoleManagement({ currentUserRole }: UserRoleManageme
                               </SelectContent>
                             </Select>
                           </div>
-
-                          <div className="flex gap-2 justify-end">
-                            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                              Cancel
-                            </Button>
-                            <Button 
-                              onClick={handleRoleUpdate} 
-                              disabled={updating || newRole === selectedUser?.role}
-                            >
-                              {updating ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Updating...
-                                </>
-                              ) : (
-                                "Update Role"
+                            <div className="flex gap-2 justify-end">
+                              {/* Reject Button: show only if NOT already rejected */}
+                              {selectedUser?.status !== "rejected" && (
+                                <Button
+                                  variant="destructive"
+                                  onClick={async () => {
+                                    if (!selectedUser) return
+                                    setUpdating(true)
+                                    try {
+                                      await handleRejectUser(selectedUser.userId)
+                                    } finally {
+                                      setUpdating(false)
+                                    }
+                                  }}
+                                  disabled={updating}
+                                >
+                                  {updating ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                      Rejecting...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <XCircle className="w-4 h-4 mr-1" />
+                                      Reject
+                                    </>
+                                  )}
+                                </Button>
                               )}
-                            </Button>
-                          </div>
+
+                              {/* Approve Button: show only if NOT already approved */}
+                              {selectedUser?.status !== "approved" && (
+                                <Button
+                                  variant="success"
+                                  onClick={async () => {
+                                    if (!selectedUser) return
+                                    setUpdating(true)
+                                    try {
+                                      await handleApproveUser(selectedUser.userId)
+                                    } finally {
+                                      setUpdating(false)
+                                    }
+                                  }}
+                                  disabled={updating}
+                                >
+                                  {updating ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                      Approving...
+                                    </>
+                                  ) : (
+                                    "Approve"
+                                  )}
+                                </Button>
+                              )}
+
+                              <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={updating}>
+                                Cancel
+                              </Button>
+
+                              <Button
+                                onClick={handleRoleUpdate}
+                                disabled={updating || newRole === selectedUser?.role}
+                              >
+                                {updating ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Updating...
+                                  </>
+                                ) : (
+                                  "Update Role"
+                                )}
+                              </Button>
+                            </div>
+
                         </div>
                       </DialogContent>
                     </Dialog>
