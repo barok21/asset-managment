@@ -5,6 +5,7 @@ import { ClerkProvider } from '@clerk/nextjs'
 import { dark } from '@clerk/themes'
 import { Toaster } from "sonner";
 import localFont from "next/font/local"
+import OnboardingWrapper from "@/components/onboarding-wrapper";
 
 // ✅ define kefa locally, NOT exported
 const kefa = localFont({

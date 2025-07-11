@@ -963,3 +963,34 @@ const onSubmit = async (values: z.infer<typeof formSchema>) => {
         )
       }
       
+
+
+      <DialogContent className="w-full max-w-[80vw] sm:max-w-4xl max-h-[90vh] sm:max-h-[80vh] bg-card overflow-y-auto pt-12 hide-scrollbar rounded-xl">
+                      <DialogHeader className="space-y-4">
+                        {/* Department */}
+                        <p className="text-sm text-muted-foreground">{selectedRequest?.department}</p>
+      
+                        {/* Title & Status */}
+                        <DialogTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                          <div className="flex items-center gap-2">
+                            <User className="h-10 w-10" />
+                            <p className="text-lg font-semibold">{selectedRequest?.requestor_full_name}</p>
+                          </div>
+      
+                          <div className="flex items-center gap-2">
+                            {getStatusIcon(selectedRequest?.status)}
+                            <Badge variant={getStatusVariant(selectedRequest?.status)}>
+                              {selectedRequest?.status || "pending"}
+                            </Badge>
+                          </div>
+                        </DialogTitle>
+      
+                        {/* Date */}
+                        <p className="text-sm text-muted-foreground">
+                          Submitted on {selectedRequest && formatDate(selectedRequest.created_at)}
+                        </p>
+                      </DialogHeader>
+      
+                        {/* Detail View */}
+                        {selectedRequest && <PropertyDetailView request={selectedRequest} />}
+                      </DialogContent>

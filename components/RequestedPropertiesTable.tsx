@@ -563,8 +563,8 @@ export default function RequestedPropertyAdminCards() {
   )
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-1">
+       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Property Requests Dashboard</h1>
           <p className="text-muted-foreground">Review and manage property requests from departments</p>
@@ -654,12 +654,12 @@ export default function RequestedPropertyAdminCards() {
               <div className="flex items-start justify-between">
                 <div className="space-y-2">
                   <CardTitle className="text-xl flex items-center gap-2">
-                    <User className="h-5 w-5" />
+                    <User className="h-5 w-5 font-kefa" />
                     {latestRequest.requestor_full_name}
                   </CardTitle>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <Building className="h-4 w-4" />
+                    <div className="flex items-center gap-2 font-kefa text-xs">
+                      <Building className="h-4 w-4 font-kefa" />
                       {latestRequest.department}
                     </div>
                     <div className="flex items-center gap-2">
@@ -768,10 +768,10 @@ export default function RequestedPropertyAdminCards() {
                     }}
                   >
                     <CardHeader className="pb-2">
-                      <div className="flex items-start justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="space-y-1">
                           <CardTitle className="text-sm font-medium truncate">{request.requestor_full_name}</CardTitle>
-                          <p className="text-xs text-muted-foreground truncate">{request.department}</p>
+                          <p className="text-xs text-muted-foreground truncate font-kefa">{request.department}</p>
                         </div>
                         <div className="flex items-center gap-1">{getStatusIcon(request.status)}</div>
                       </div>
@@ -802,12 +802,16 @@ export default function RequestedPropertyAdminCards() {
                   </Card>
                 </DialogTrigger>
 
-                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto pt-12 hide-scrollbar">
+                <DialogContent className="w-ful max-w-[95vw] sm:max-w-4xl max-h-[90vh] sm:max-h-[80vh] bg-card overflow-y-auto pt-12 hide-scrollbar rounded-xl">
                   <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
+                    <DialogTitle className="flex items-center gap-3">
                       <User className="h-10 w-10" />
-                      {selectedRequest?.requestor_full_name} - {selectedRequest?.department}
-                      <div className="flex items-center gap-1 ml-auto">
+                      <div className="sm:flex-row gap-3 pt3">
+                        <p>{selectedRequest?.requestor_full_name}</p>
+                       <p className="text-muted-foreground font-kefa text-xs pt-1">{selectedRequest?.department}</p>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 ml-auto">
                         {getStatusIcon(selectedRequest?.status)}
                         <Badge variant={getStatusVariant(selectedRequest?.status)}>
                           {selectedRequest?.status || "pending"}
