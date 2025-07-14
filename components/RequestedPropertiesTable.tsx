@@ -509,7 +509,7 @@ export default function RequestedPropertyAdminCards() {
                     onClick={() => handleItemStatusChange(item.id, "approved", request.request_batch_id)}
                   >
                     {processingItems.has(item.id) ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <LoaderIcon className="h-3 w-3 animate-spin" />
                     ) : (
                       <CheckCircle className="h-3 w-3" />
                     )}
@@ -522,7 +522,7 @@ export default function RequestedPropertyAdminCards() {
                     onClick={() => openRejectionDialog("item", item.id, undefined, item.property_name)}
                   >
                     {processingItems.has(item.id) ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <LoaderIcon className="h-3 w-3 animate-spin" />
                     ) : (
                       <XCircle className="h-3 w-3" />
                     )}
@@ -657,14 +657,14 @@ export default function RequestedPropertyAdminCards() {
                     <User className="h-5 w-5 font-kefa" />
                     {latestRequest.requestor_full_name}
                   </CardTitle>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="lg:flex items-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-2 font-kefa text-xs">
                       <Building className="h-4 w-4 font-kefa" />
                       {latestRequest.department}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      {formatDate(latestRequest.created_at)}
+                    <div className="flex items-center gap-2 text-green-500 ">
+                      <Calendar className="h-4 w-4 " />
+                       {formatDate(latestRequest.created_at)}
                     </div>
                   </div>
                 </div>
@@ -676,7 +676,7 @@ export default function RequestedPropertyAdminCards() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-4 text-xs text-muted-foreground pt-4">
                 <span className="flex items-center gap-1">
                   <div className="w-2 h-2 bg-green-500 rounded-full" />
                   {latestRequest.properties.filter((p) => p.status === "approved").length} approved
@@ -791,7 +791,7 @@ export default function RequestedPropertyAdminCards() {
                           </Badge>
                         </div>
 
-                        <div className="text-xs text-muted-foreground">{formatDate(request.created_at)}</div>
+                        <div className="text-xs text-green-500">{formatDate(request.created_at)}</div>
 
                         <div className="flex items-center gap-1 pt-1">
                           <Eye className="h-3 w-3 text-muted-foreground" />
@@ -802,7 +802,7 @@ export default function RequestedPropertyAdminCards() {
                   </Card>
                 </DialogTrigger>
 
-                <DialogContent className="w-ful max-w-[95vw] sm:max-w-4xl max-h-[90vh] sm:max-h-[80vh] bg-card overflow-y-auto pt-12 hide-scrollbar rounded-xl">
+                <DialogContent className="w-full max-w-[95vw] sm:max-w-2xl max-h-[90vh] sm:max-h-[80vh] bg-card overflow-y-auto pt-12 hide-scrollbar rounded-xl">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-3">
                       <User className="h-10 w-10" />
@@ -819,7 +819,7 @@ export default function RequestedPropertyAdminCards() {
                       </div>
                     </DialogTitle>
                     <p className="text-sm text-muted-foreground">
-                      Submitted on {selectedRequest && formatDate(selectedRequest.created_at)}
+                      Submitted on <span className="text-green-500">{selectedRequest && formatDate(selectedRequest.created_at)}</span>
                     </p>
                   </DialogHeader>
 
@@ -883,13 +883,12 @@ export default function RequestedPropertyAdminCards() {
                   <Label
                     key={reason}
                     htmlFor={reason}
-                    className="flex items-center gap-2 p-2 border border-orange-90 rounded-lg cursor-pointer transition-all hover:bg-muted/50 data-[state=checked]:bg-primary/10 data-[state=checked]:border-primary"
+                    className="flex items-center gap-2 p-2 border hover:border-pink-100 rounded-lg cursor-pointer transition-all hover:bg-muted/50 data-[state=checked]:bg-primary/100 data-[state=checked]:border-pink-500"
                   >
-                    <RadioGroupItem value={reason} id={reason} className="mt-0.5" />
+                    <RadioGroupItem value={reason} id={reason} className="mt-0.5 hover:border-pink-500" />
                     <span className="text-sm">{reason}</span>
                   </Label>
                 ))}
-
                 <Label
                   htmlFor="custom"
                   className="flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition-all hover:bg-muted/50 data-[state=checked]:bg-primary/10 data-[state=checked]:border-primary"

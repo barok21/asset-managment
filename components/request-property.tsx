@@ -189,7 +189,7 @@ const RequestProperty = () => {
       </DialogTrigger>
 
       <DialogContent
-        className="max-w-[1100px] overflow-y-auto max-h-[90vh] hide-scrollbar"
+        className="w-full max-w-[95vw] sm:max-w-3xl overflow-y-auto max-h-[90vh] sm:max-h-[95vh]  hide-scrollbar rounded-xl"
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
@@ -245,6 +245,44 @@ const RequestProperty = () => {
                             ))}
                           </SelectContent>
                         </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </form>
+            </Form>
+          </section>
+
+          <section className="bg-card p-6 rounded-2xl border">
+            <h2 className="text-xl font-semibold mb-4">Event Detail</h2>
+            <Form {...requesterForm}>
+              <form>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                  <FormField
+                    control={requesterForm.control}
+                    name="special_requirment"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Purpose or event description</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Eevent description" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={requesterForm.control}
+                    name="special_requirment"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Special Requirement</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Optional" {...field} />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -389,7 +427,7 @@ const RequestProperty = () => {
           </section>
         </div>
 
-        <DialogFooter className="flex justify-between pt-6">
+        <DialogFooter className="flex justify-between pt-2">
           <Button
             variant="outline"
             onClick={() => setOpen(false)}

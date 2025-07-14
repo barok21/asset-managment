@@ -26,9 +26,9 @@ export function SiteHeader() {
               Google
             </a>
           </Button>
-            <ModeToggle/>
-            <UserButton/>
         </div>
+            <UserButton/>
+            <ModeToggle/>
       </div>
     </header>
   )
