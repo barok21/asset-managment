@@ -509,6 +509,8 @@ export const fetchGroupedRequestedPropertiesWithUsage = async (
         status: item.status ?? null,
         overall_rejection_reason: item.overall_rejection_reason ?? null,
         created_at: item.created_at,
+        event_desc: item.event_desc,
+        phone_number: item.phone_number,
         properties: [],
       }
     }

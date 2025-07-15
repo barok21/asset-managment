@@ -47,6 +47,8 @@ import {
   Shield,
   MessageSquare,
   LoaderIcon,
+  InfoIcon,
+  BadgeInfoIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { COMMON_REJECTION_REASONS } from "@/types/constants"
@@ -60,6 +62,9 @@ interface PropertyItem {
   status?: "approved" | "rejected" | "pending"
   rejection_reason?: string
   usedInOtherDept: string[]
+  event_desc:string
+  phone_number:string
+ 
 }
 
 interface RequestGroup {
@@ -71,6 +76,9 @@ interface RequestGroup {
   overall_rejection_reason?: string
   created_at: string
   properties: PropertyItem[]
+  event_desc: string
+  phone_number:string
+
 }
 
 interface RejectionDialogState {
@@ -428,10 +436,19 @@ export default function RequestedPropertyAdminCards() {
           <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
           <div>
             <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Special Requirement</p>
-            <p className="text-sm text-yellow-700 dark:text-yellow-300">{request.special_requirment}</p>
+            <p className="text-[11px] font-kefa text-yellow-700 dark:text-yellow-300">{request.special_requirment}</p>
           </div>
         </div>
       )}
+          <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-sky-950/20 rounded-lg border border-sky-200 dark:border-sky-800">
+            <BadgeInfoIcon className="h-4 w-4 text-sky-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-sky-800 dark:text-sky-200">Event Description</p>
+              <p className="text-[11px] text-sky-700 dark:text-sky-300 font-kefa">{request.event_desc}</p>
+              <p className="text-[11px] text-sky-700 dark:text-sky-300 font-kefa">{request.phone_number}</p>
+            </div>
+          </div>
+          
 
       {request.overall_rejection_reason && (
         <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
@@ -442,8 +459,8 @@ export default function RequestedPropertyAdminCards() {
           </div>
         </div>
       )}
-
       <div className="space-y-3">
+        
         {request.properties.map((item, idx) => (
           <div
             key={item.id}
@@ -457,6 +474,7 @@ export default function RequestedPropertyAdminCards() {
               <div className="space-y-1">
                 <p className="font-medium text-sm">
                   #{idx + 1} {item.property_name}
+                  
                 </p>
                 <p className="text-xs text-muted-foreground">Requested: {item.quantity} units</p>
                 {Array.isArray(item.usedInOtherDept) && item.usedInOtherDept.length > 0 && (
@@ -656,6 +674,7 @@ export default function RequestedPropertyAdminCards() {
                   <CardTitle className="text-xl flex items-center gap-2">
                     <User className="h-5 w-5 font-kefa" />
                     {latestRequest.requestor_full_name}
+                    <p>{latestRequest.phone_number}</p>
                   </CardTitle>
                   <div className="lg:flex items-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-2 font-kefa text-xs">
@@ -673,6 +692,7 @@ export default function RequestedPropertyAdminCards() {
                   <Badge variant={getStatusVariant(latestRequest.status)} className="text-sm">
                     {latestRequest.status || "pending"}
                   </Badge>
+                  
                 </div>
               </div>
 

@@ -50,11 +50,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select"
+import { Textarea } from "./ui/textarea"
+import { PhoneInput } from "./phone-input"
 
 const requesterSchema = z.object({
   requestor_full_name: z.string().min(1, "Requestor full name is required"),
   department: z.string().min(1, "Department is required"),
   special_requirment: z.string().optional(),
+  event_desc: z.string().min(1, "Event description is required"),
+  phone_number: z.string().min(1, "Phone number is required"), 
+
 })
 
 const propertySchema = z.object({
@@ -79,6 +84,8 @@ const RequestProperty = () => {
       requestor_full_name: "",
       department: "",
       special_requirment: "",
+      event_desc:"",
+      phone_number: "", 
     },
   })
 
@@ -126,7 +133,7 @@ const RequestProperty = () => {
       return
     }
 
-    if (!requesterForm.getValues("requestor_full_name") || !requesterForm.getValues("department")) {
+    if (!requesterForm.getValues("requestor_full_name") || !requesterForm.getValues("event_desc")) {
       toast.error("Please fill in Requester Full Name and Department first.")
       return
     }
@@ -163,6 +170,8 @@ const RequestProperty = () => {
         special_requirment: requesterData.special_requirment ?? "",
         requestor_full_name: requesterData.requestor_full_name,
         department: requesterData.department,
+        event_desc: requesterData.event_desc,
+        phone_number: requesterData.phone_number,
         request_batch_id: batchId,
       }))
 
@@ -220,6 +229,8 @@ const RequestProperty = () => {
                       </FormItem>
                     )}
                   />
+                 
+
 
                   <FormField
                     control={requesterForm.control}
@@ -249,6 +260,23 @@ const RequestProperty = () => {
                       </FormItem>
                     )}
                   />
+
+                    <FormField
+                      control={requesterForm.control}
+                      name="phone_number"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone Number</FormLabel>
+                          <PhoneInput
+                            defaultCountry="ET"
+                            value={field.value}
+                            onChange={field.onChange}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                 </div>
               </form>
             </Form>
@@ -262,17 +290,18 @@ const RequestProperty = () => {
 
                   <FormField
                     control={requesterForm.control}
-                    name="special_requirment"
+                    name="event_desc"
                     render={({ field }) => (
                       <FormItem className="md:col-span-2">
                         <FormLabel>Purpose or event description</FormLabel>
                         <FormControl>
-                          <Input placeholder="Eevent description" {...field} />
+                          <Textarea className="font-kefa text-[11px]" placeholder="Eevent description" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+                  
 
                   <FormField
                     control={requesterForm.control}
@@ -281,7 +310,7 @@ const RequestProperty = () => {
                       <FormItem className="md:col-span-2">
                         <FormLabel>Special Requirement</FormLabel>
                         <FormControl>
-                          <Input placeholder="Optional" {...field} />
+                          <Textarea className="font-kefa" placeholder="Optional" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
