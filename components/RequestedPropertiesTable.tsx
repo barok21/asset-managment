@@ -498,7 +498,7 @@ export default function RequestedPropertyAdminCards() {
   const PropertyDetailView = ({ request }: { request: RequestGroup }) => (
     <div className="space-y-4">
       {request.special_requirment && (
-        <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+        <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-300 dark:border-yellow-800">
           <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
           <div>
             <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
@@ -510,25 +510,32 @@ export default function RequestedPropertyAdminCards() {
           </div>
         </div>
       )}
-      <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-sky-950/20 rounded-lg border border-sky-200 dark:border-sky-800">
+      <div className="flex flex-col sm:flex-row items-start gap-2 p-3 bg-sky-50 dark:bg-sky-950/20 rounded-lg border border-sky-200 dark:border-sky-800">
         <BadgeInfoIcon className="h-4 w-4 text-sky-600 mt-0.5 flex-shrink-0" />
-        <div>
+        <div className="flex-1">
           <p className="text-sm font-medium text-sky-800 dark:text-sky-200">
             Event Description
           </p>
           <p className="text-[11px] text-sky-700 dark:text-sky-300 font-kefa">
             {request.event_desc}
           </p>
-          <div className="flex items-start gap-2 pt-2">
-            <Badge variant={"outline"} className="p-1.5  pr-3">
-              starting{" - "}
-              <Badge variant={"outline"} className="text-sky-600 font-semibold">
+
+          <div className="flex flex-col xs:flex-row flex-wrap items-start gap-2 pt-2">
+            <Badge variant="outline" className="p-1.5 pr-3">
+              starts{" - "}
+              <Badge
+                variant="outline"
+                className="text-sky-600 font-semibold ml-1"
+              >
                 {formatDate(request.start_date)}
               </Badge>
             </Badge>
-            <Badge variant={"outline"} className="p-1.5  pr-3">
+            <Badge variant="outline" className="p-1.5 pr-3">
               ends{" - "}
-              <Badge variant={"outline"} className="text-sky-600 font-semibold">
+              <Badge
+                variant="outline"
+                className="text-sky-600 font-semibold ml-1"
+              >
                 {formatDate(request.end_date)}
               </Badge>
             </Badge>
@@ -845,17 +852,24 @@ export default function RequestedPropertyAdminCards() {
                         {latestRequest.department}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-green-500 font-semibold">
-                      <Badge variant={"outline"} className="p-2">
-                        <Calendar className="h-4 w-4" />
+                    <div className="flex flex-col md:flex-row items-start md:items-center gap-2 text-green-500 font-semibold">
+                      <Badge
+                        variant="outline"
+                        className="flex items-center gap-2 p-2"
+                      >
+                        <Calendar className="h-4 w-4 text-amber-600" />
                         <span>
-                          {" "}
                           Request Date: {formatDate(latestRequest.created_at)}
                         </span>
                       </Badge>
-                      <Badge variant={"outline"} className="p-2">
-                        <Calendar className="h-4 w-4" />
-                        Return Date: {formatDate(latestRequest.return_date)}
+                      <Badge
+                        variant="outline"
+                        className="flex items-center gap-2 p-2"
+                      >
+                        <Calendar className="h-4 w-4  text-amber-600" />
+                        <span>
+                          Return Date: {formatDate(latestRequest.return_date)}
+                        </span>
                       </Badge>
                     </div>
                   </div>
