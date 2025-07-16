@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useForm, Controller } from "react-hook-form"
-import { z } from "zod"
-import { v4 as uuidv4 } from "uuid"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { z } from "zod";
+import { v4 as uuidv4 } from "uuid";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -14,9 +14,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import {
   Command,
   CommandEmpty,
@@ -24,8 +28,8 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/command";
+import { Input } from "@/components/ui/input";
 import {
   Form,
   FormField,
@@ -33,58 +37,58 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
-} from "@/components/ui/form"
-import { Trash2, Plus } from "lucide-react"
-import { TextShimmer } from "./motion-primitives/text-shimmer"
-import { toast } from "sonner"
+} from "@/components/ui/form";
+import { Trash2, Plus } from "lucide-react";
+import { TextShimmer } from "./motion-primitives/text-shimmer";
+import { toast } from "sonner";
 import {
   getAllProperties,
   getDepartments,
   requestProperties as submitRequestProperty,
-} from "@/lib/actions/property.action"
-import { getUserProfile } from "@/lib/actions/user.action"
+} from "@/lib/actions/property.action";
+import { getUserProfile } from "@/lib/actions/user.action";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select"
-import { Textarea } from "./ui/textarea"
-import { PhoneInput } from "./phone-input"
-import { Calendar04 } from "./datepicker"
-
-
+} from "./ui/select";
+import { Textarea } from "./ui/textarea";
+import { PhoneInput } from "./phone-input";
+import { Calendar04 } from "./datepicker";
+import { SingleDatePicker } from "./simpleDatePicker";
+import { Badge } from "./ui/badge";
 
 const requesterSchema = z.object({
   requestor_full_name: z.string().min(1, "Requestor full name is required"),
   department: z.string().min(1, "Department is required"),
   special_requirment: z.string().optional(),
   event_desc: z.string().min(1, "Event description is required"),
-  phone_number: z.string().min(1, "Phone number is required"), 
-  // event_date: z.date({ required_error: "Event date is required" }),
+  phone_number: z.string().min(1, "Phone number is required"),
+  return_date: z.string().min(1, "Phone number is required"),
   start_time: z.string().min(1, "Start time is required"),
   end_time: z.string().min(1, "End time is required"),
- start_date: z.string().min(1, "Start date is required"),
+  start_date: z.string().min(1, "Start date is required"),
   end_date: z.string().min(1, "End date is required"),
-
-})
+  event_type: z.string().min(1, "Event type is required"),
+});
 
 const propertySchema = z.object({
   property_name: z.string().min(1, "Property name is required"),
   quantity: z.string().min(1, "Quantity is required"),
-})
+});
 
-type RequesterFormData = z.infer<typeof requesterSchema>
-type PropertyFormData = z.infer<typeof propertySchema>
+type RequesterFormData = z.infer<typeof requesterSchema>;
+type PropertyFormData = z.infer<typeof propertySchema>;
 
 const RequestProperty = () => {
-  const [open, setOpen] = useState(false)
-  const [properties, setProperties] = useState<PropertyFormData[]>([])
-  const [propertyOptions, setPropertyOptions] = useState<string[]>([])
-  const [departments, setDepartments] = useState<string[]>([])
-  const [loading, setLoading] = useState(false)
-  const [formReady, setFormReady] = useState(false)
+  const [open, setOpen] = useState(false);
+  const [properties, setProperties] = useState<PropertyFormData[]>([]);
+  const [propertyOptions, setPropertyOptions] = useState<string[]>([]);
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [formReady, setFormReady] = useState(false);
 
   const requesterForm = useForm<RequesterFormData>({
     resolver: zodResolver(requesterSchema),
@@ -92,14 +96,16 @@ const RequestProperty = () => {
       requestor_full_name: "",
       department: "",
       special_requirment: "",
-      event_desc:"",
-      phone_number: "", 
+      event_desc: "",
+      phone_number: "",
+      return_date: "",
       start_date: "",
       end_date: "",
-      start_time: "",         // ✅ not undefined
-      end_time: "", 
+      start_time: "", // ✅ not undefined
+      end_time: "",
+      event_type: "",
     },
-  })
+  });
 
   const propertyForm = useForm<PropertyFormData>({
     resolver: zodResolver(propertySchema),
@@ -107,77 +113,85 @@ const RequestProperty = () => {
       property_name: "",
       quantity: "",
     },
-  })
+  });
 
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const profile = await getUserProfile()
+        const profile = await getUserProfile();
         if (profile) {
           requesterForm.reset({
             requestor_full_name: profile.fullName,
             department: profile.department,
             special_requirment: "",
-          })
-          setFormReady(true)
+          });
+          setFormReady(true);
         }
 
         const [departments, propertyResponse] = await Promise.all([
           getDepartments(),
-          getAllProperties({ limit: 100, page: 1, category: "", dept_user: "" }),
-        ])
+          getAllProperties({
+            limit: 100,
+            page: 1,
+            category: "",
+            dept_user: "",
+          }),
+        ]);
 
-        const propertyOptions = propertyResponse.property.map((p) => p.name)
-        setDepartments(departments)
-        setPropertyOptions(propertyOptions)
+        const propertyOptions = propertyResponse.property.map((p) => p.name);
+        setDepartments(departments);
+        setPropertyOptions(propertyOptions);
       } catch (err) {
-        console.error(err)
-        toast.error("Failed to load user profile, departments, or properties")
+        console.error(err);
+        toast.error("Failed to load user profile, departments, or properties");
       }
-    }
+    };
 
-    fetchAll()
-  }, [])
+    fetchAll();
+  }, []);
 
   const addProperty = (data: PropertyFormData) => {
     if (!formReady) {
-      toast.warning("Requester profile is still loading.")
-      return
+      toast.warning("Requester profile is still loading.");
+      return;
     }
 
-    if (!requesterForm.getValues("requestor_full_name") || !requesterForm.getValues("event_desc")) {
-      toast.error("Please fill in Requester Full Name and Department first.")
-      return
+    if (
+      !requesterForm.getValues("requestor_full_name") ||
+      !requesterForm.getValues("event_desc")
+    ) {
+      toast.error("Please fill in Requester Full Name and Department first.");
+      return;
     }
 
-    setProperties((prev) => [data, ...prev])
-    propertyForm.reset()
-    toast.success("Property added to list.")
-  }
+    setProperties((prev) => [data, ...prev]);
+    propertyForm.reset();
+    toast.success("Property added to list.");
+  };
 
   const removeProperty = (index: number) => {
-    setProperties((prev) => prev.filter((_, i) => i !== index))
-  }
+    setProperties((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const onSubmitAll = async () => {
     if (properties.length === 0) {
-      toast.error("Add at least one property.")
-      return
+      toast.error("Add at least one property.");
+      return;
     }
 
-   const isRequesterValid = await requesterForm.trigger();
-if (!isRequesterValid) {
-  const errors = requesterForm.formState.errors;
-  console.log(errors);
-  toast.error("Please fix requester information errors.");
-  return;
-}
+    const isRequesterValid = await requesterForm.trigger();
+    if (!isRequesterValid) {
+      const errors = requesterForm.formState.errors;
+      console.log(errors);
+      toast.error("Please fix requester information errors.");
+      return;
+    }
 
-    setLoading(true)
-    const batchId = uuidv4()
+    setLoading(true);
+    const batchId = uuidv4();
 
     try {
-      const requesterData = requesterForm.getValues()
+      const requesterData = requesterForm.getValues();
 
       const payload = properties.map((p) => ({
         ...p,
@@ -186,35 +200,36 @@ if (!isRequesterValid) {
         department: requesterData.department,
         event_desc: requesterData.event_desc,
         phone_number: requesterData.phone_number,
-        // event_date: requesterData.event_date,
         start_time: requesterData.start_time,
         end_time: requesterData.end_time,
-        // return_date: requesterData.return_date,
         start_date: requesterData.start_date,
         end_date: requesterData.end_date,
         request_batch_id: batchId,
-      }))
+        event_type: requesterData.event_type,
+        return_date: requesterData.return_date,
+      }));
 
-      const result = await submitRequestProperty(payload)
-      toast.success(`${result.inserted} properties submitted.`)
-      setProperties([])
-      setOpen(false)
-      requesterForm.reset()
-      propertyForm.reset()
+      const result = await submitRequestProperty(payload);
+      toast.success(`${result.inserted} properties submitted.`);
+      setProperties([]);
+      setOpen(false);
+      requesterForm.reset();
+      propertyForm.reset();
     } catch (error) {
-      console.error(error)
-      toast.error("Failed to submit properties.")
+      console.error(error);
+      toast.error("Failed to submit properties.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button className="border-2" variant="outline">
-        <Plus/>
-          Request Property</Button>
+          <Plus />
+          Request Property
+        </Button>
       </DialogTrigger>
 
       <DialogContent
@@ -225,17 +240,26 @@ if (!isRequesterValid) {
         <DialogHeader>
           <DialogTitle>Request New Property</DialogTitle>
           <DialogDescription>
-            Fill in requester information once, then add one or multiple properties.
+            Fill in requester information once, then add one or multiple
+            properties.{" "}
+            <Badge
+              variant={"outline"}
+              className="border-2 border-sky-500 bg-sky-900 font-semibold"
+            >
+              {"< "}5 min
+            </Badge>
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Requester Info Form */}
           <section className="bg-card p-6 rounded-2xl border">
-            <h2 className="text-xl font-semibold mb-4">Requester Information</h2>
+            <h2 className="text-xl font-semibold mb-4">
+              Requester Information
+            </h2>
             <Form {...requesterForm}>
               <form>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                   <FormField
                     control={requesterForm.control}
                     name="requestor_full_name"
@@ -243,14 +267,16 @@ if (!isRequesterValid) {
                       <FormItem>
                         <FormLabel>Requestor Full Name</FormLabel>
                         <FormControl>
-                          <Input {...field} disabled />
+                          <Input
+                            className="font-kefa text-xs"
+                            {...field}
+                            disabled
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                 
-
 
                   <FormField
                     control={requesterForm.control}
@@ -271,7 +297,7 @@ if (!isRequesterValid) {
                           <SelectContent>
                             {departments.map((dept) => (
                               <SelectItem key={dept} value={dept}>
-                                {dept}
+                                <p className="font-kefa text-xs">{dept}</p>
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -281,26 +307,23 @@ if (!isRequesterValid) {
                     )}
                   />
 
-                    <FormField
-                      control={requesterForm.control}
-                      name="phone_number"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Phone Number</FormLabel>
-                          <PhoneInput
-                            defaultCountry="ET"
-                            value={field.value}
-                            onChange={field.onChange}
-                          />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
+                  <FormField
+                    control={requesterForm.control}
+                    name="phone_number"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number</FormLabel>
+                        <PhoneInput
+                          defaultCountry="ET"
+                          value={field.value}
+                          onChange={field.onChange}
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-
-                    {/* <EthiopianCalendarPicker/> */}
-
+                  {/* <EthiopianCalendarPicker/> */}
                 </div>
               </form>
             </Form>
@@ -310,8 +333,7 @@ if (!isRequesterValid) {
             <h2 className="text-xl font-semibold mb-4">Event Detail</h2>
             <Form {...requesterForm}>
               <form>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={requesterForm.control}
                     name="event_desc"
@@ -319,13 +341,16 @@ if (!isRequesterValid) {
                       <FormItem className="md:col-span-2">
                         <FormLabel>Purpose or event description</FormLabel>
                         <FormControl>
-                          <Textarea className="font-kefa text-[11px]" placeholder="Eevent description" {...field} />
+                          <Textarea
+                            className="font-kefa text-[11px]"
+                            placeholder="Eevent description"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
 
                   <FormField
                     control={requesterForm.control}
@@ -334,25 +359,37 @@ if (!isRequesterValid) {
                       <FormItem className="md:col-span-2">
                         <FormLabel>Special Requirement</FormLabel>
                         <FormControl>
-                          <Textarea className="font-kefa" placeholder="Optional" {...field} />
+                          <Textarea
+                            className="font-kefa text-[11px]"
+                            placeholder="Optional"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                   <Controller
+                  <Controller
                     control={requesterForm.control}
                     name="start_date" // to register with RHF
                     render={() => (
                       <Calendar04
                         startDate={requesterForm.watch("start_date")}
                         endDate={requesterForm.watch("end_date")}
-                        onStartDateChange={(val) => requesterForm.setValue("start_date", val)}
-                        onEndDateChange={(val) => requesterForm.setValue("end_date", val)}
+                        onStartDateChange={(val) =>
+                          requesterForm.setValue("start_date", val)
+                        }
+                        onEndDateChange={(val) =>
+                          requesterForm.setValue("end_date", val)
+                        }
                         startTime={requesterForm.watch("start_time")}
                         endTime={requesterForm.watch("end_time")}
-                        onStartTimeChange={(val) => requesterForm.setValue("start_time", val)}
-                        onEndTimeChange={(val) => requesterForm.setValue("end_time", val)}
+                        onStartTimeChange={(val) =>
+                          requesterForm.setValue("start_time", val)
+                        }
+                        onEndTimeChange={(val) =>
+                          requesterForm.setValue("end_time", val)
+                        }
                       />
                     )}
                   />
@@ -373,6 +410,67 @@ if (!isRequesterValid) {
                     )}
                   </div>
 
+                  <FormField
+                    control={requesterForm.control}
+                    name="return_date"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Return Date</FormLabel>
+
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="justify-start text-left w-full"
+                            >
+                              {field.value
+                                ? new Date(field.value).toLocaleDateString()
+                                : "Pick a return date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <SingleDatePicker
+                              selected={
+                                field.value ? new Date(field.value) : undefined
+                              }
+                              onChange={field.onChange}
+                            />
+                          </PopoverContent>
+                        </Popover>
+
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={requesterForm.control}
+                    name="event_type"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Event Type</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select event type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Inside the church">
+                              Inside the church
+                            </SelectItem>
+                            <SelectItem value="Outside the church">
+                              Outside the church
+                            </SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
               </form>
             </Form>
@@ -407,7 +505,10 @@ if (!isRequesterValid) {
                           <Button
                             variant="outline"
                             role="combobox"
-                            className={cn("justify-between", !field.value && "text-muted-foreground")}
+                            className={cn(
+                              "justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
                           >
                             {field.value || "Select a property"}
                           </Button>
@@ -452,7 +553,11 @@ if (!isRequesterValid) {
                 />
 
                 <div className="flex items-end">
-                  <Button type="submit" disabled={loading || !formReady} className="w-full cursor-pointer">
+                  <Button
+                    type="submit"
+                    disabled={loading || !formReady}
+                    className="w-full cursor-pointer"
+                  >
                     <Plus className="mr-2 h-4 w-4" />
                     Add Property
                   </Button>
@@ -466,10 +571,18 @@ if (!isRequesterValid) {
                 <table className="w-full text-sm">
                   <thead className="bg-muted/40">
                     <tr>
-                      <th scope="col" className="p-2 text-center">No</th>
-                      <th scope="col" className="p-2 text-left">Property</th>
-                      <th scope="col" className="p-2 text-center">Qty</th>
-                      <th scope="col" className="p-2 text-center">Remove</th>
+                      <th scope="col" className="p-2 text-center">
+                        No
+                      </th>
+                      <th scope="col" className="p-2 text-left">
+                        Property
+                      </th>
+                      <th scope="col" className="p-2 text-center">
+                        Qty
+                      </th>
+                      <th scope="col" className="p-2 text-center">
+                        Remove
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -525,7 +638,7 @@ if (!isRequesterValid) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};
 
-export default RequestProperty
+export default RequestProperty;
