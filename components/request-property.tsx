@@ -52,6 +52,9 @@ import {
 } from "./ui/select"
 import { Textarea } from "./ui/textarea"
 import { PhoneInput } from "./phone-input"
+import { Calendar04 } from "./datepicker"
+
+
 
 const requesterSchema = z.object({
   requestor_full_name: z.string().min(1, "Requestor full name is required"),
@@ -59,6 +62,11 @@ const requesterSchema = z.object({
   special_requirment: z.string().optional(),
   event_desc: z.string().min(1, "Event description is required"),
   phone_number: z.string().min(1, "Phone number is required"), 
+  // event_date: z.date({ required_error: "Event date is required" }),
+  start_time: z.string().min(1, "Start time is required"),
+  end_time: z.string().min(1, "End time is required"),
+ start_date: z.string().min(1, "Start date is required"),
+  end_date: z.string().min(1, "End date is required"),
 
 })
 
@@ -86,6 +94,10 @@ const RequestProperty = () => {
       special_requirment: "",
       event_desc:"",
       phone_number: "", 
+      start_date: "",
+      end_date: "",
+      start_time: "",         // ✅ not undefined
+      end_time: "", 
     },
   })
 
@@ -153,11 +165,13 @@ const RequestProperty = () => {
       return
     }
 
-    const isRequesterValid = await requesterForm.trigger()
-    if (!isRequesterValid) {
-      toast.error("Please fix requester information errors.")
-      return
-    }
+   const isRequesterValid = await requesterForm.trigger();
+if (!isRequesterValid) {
+  const errors = requesterForm.formState.errors;
+  console.log(errors);
+  toast.error("Please fix requester information errors.");
+  return;
+}
 
     setLoading(true)
     const batchId = uuidv4()
@@ -172,6 +186,12 @@ const RequestProperty = () => {
         department: requesterData.department,
         event_desc: requesterData.event_desc,
         phone_number: requesterData.phone_number,
+        // event_date: requesterData.event_date,
+        start_time: requesterData.start_time,
+        end_time: requesterData.end_time,
+        // return_date: requesterData.return_date,
+        start_date: requesterData.start_date,
+        end_date: requesterData.end_date,
         request_batch_id: batchId,
       }))
 
@@ -276,6 +296,10 @@ const RequestProperty = () => {
                         </FormItem>
                       )}
                     />
+                    
+
+
+                    {/* <EthiopianCalendarPicker/> */}
 
                 </div>
               </form>
@@ -316,6 +340,39 @@ const RequestProperty = () => {
                       </FormItem>
                     )}
                   />
+                   <Controller
+                    control={requesterForm.control}
+                    name="start_date" // to register with RHF
+                    render={() => (
+                      <Calendar04
+                        startDate={requesterForm.watch("start_date")}
+                        endDate={requesterForm.watch("end_date")}
+                        onStartDateChange={(val) => requesterForm.setValue("start_date", val)}
+                        onEndDateChange={(val) => requesterForm.setValue("end_date", val)}
+                        startTime={requesterForm.watch("start_time")}
+                        endTime={requesterForm.watch("end_time")}
+                        onStartTimeChange={(val) => requesterForm.setValue("start_time", val)}
+                        onEndTimeChange={(val) => requesterForm.setValue("end_time", val)}
+                      />
+                    )}
+                  />
+
+                  {/* Show validation errors */}
+                  <div className="mt-1 space-y-1 text-sm text-red-500">
+                    {requesterForm.formState.errors.start_date && (
+                      <p>{requesterForm.formState.errors.start_date.message}</p>
+                    )}
+                    {requesterForm.formState.errors.end_date && (
+                      <p>{requesterForm.formState.errors.end_date.message}</p>
+                    )}
+                    {requesterForm.formState.errors.start_time && (
+                      <p>{requesterForm.formState.errors.start_time.message}</p>
+                    )}
+                    {requesterForm.formState.errors.end_time && (
+                      <p>{requesterForm.formState.errors.end_time.message}</p>
+                    )}
+                  </div>
+
                 </div>
               </form>
             </Form>

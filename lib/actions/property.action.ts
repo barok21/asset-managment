@@ -511,6 +511,7 @@ export const fetchGroupedRequestedPropertiesWithUsage = async (
         created_at: item.created_at,
         event_desc: item.event_desc,
         phone_number: item.phone_number,
+        start_date: item.start_date,
         properties: [],
       }
     }
@@ -526,7 +527,7 @@ export const fetchGroupedRequestedPropertiesWithUsage = async (
   return { data: enriched, total, hasMore }
 }
 
-// fpr only the department
+// for only the department
 // export const fetchGroupedRequestedPropertiesWithUsage = async (
 //   page = 1,
 //   limit = 10,

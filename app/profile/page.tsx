@@ -4,6 +4,7 @@ import OnboardingWrapper from "@/components/onboarding-wrapper"
 import UserRoleManagement from "@/components/user-role-management"
 import { getUserRole } from "@/lib/actions/user.action"
 import RequestedPropertyAdminCards from "@/components/RequestedPropertiesTable"
+import RequestProperty from "@/components/request-property"
 
 export default async function DashboardPage() {
   const { userId } = await auth()
@@ -25,6 +26,7 @@ export default async function DashboardPage() {
             {/* Role Management (only for higher management) */}
             {canManageRoles && (
               <div className="mt-12">
+                <RequestProperty/>
                 <UserRoleManagement currentUserRole={userRole} />
               </div>
             )}

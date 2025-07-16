@@ -49,6 +49,7 @@ import {
   LoaderIcon,
   InfoIcon,
   BadgeInfoIcon,
+  Star,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { COMMON_REJECTION_REASONS } from "@/types/constants"
@@ -64,6 +65,10 @@ interface PropertyItem {
   usedInOtherDept: string[]
   event_desc:string
   phone_number:string
+  start_date:string
+  end_date: string
+  start_time: string
+  end_time: string
  
 }
 
@@ -78,6 +83,10 @@ interface RequestGroup {
   properties: PropertyItem[]
   event_desc: string
   phone_number:string
+  start_date: string
+  end_date: string
+  start_time: string
+  end_time: string
 
 }
 
@@ -423,6 +432,7 @@ export default function RequestedPropertyAdminCards() {
         <Package className="h-12 w-12 text-muted-foreground mb-4" />
         <h3 className="text-lg font-semibold mb-2">No Property Requests</h3>
         <p className="text-muted-foreground">There are no property requests to review at this time.</p>
+        <RequestProperty/>
       </div>
     )
   }
@@ -445,7 +455,9 @@ export default function RequestedPropertyAdminCards() {
             <div>
               <p className="text-sm font-medium text-sky-800 dark:text-sky-200">Event Description</p>
               <p className="text-[11px] text-sky-700 dark:text-sky-300 font-kefa">{request.event_desc}</p>
-              <p className="text-[11px] text-sky-700 dark:text-sky-300 font-kefa">{request.phone_number}</p>
+              <div className="flex flex-col pt-2">
+              <Badge variant={"outline"}>Event Starting date {latestRequest.start_date}</Badge>
+              </div>
             </div>
           </div>
           
@@ -669,32 +681,40 @@ export default function RequestedPropertyAdminCards() {
           </h2>
           <Card className={cn("shadow-lg border-2")}>
             <CardHeader className="pb-4">
-              <div className="flex items-start justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                {/* Left section: User Info */}
                 <div className="space-y-2">
-                  <CardTitle className="text-xl flex items-center gap-2">
-                    <User className="h-5 w-5 font-kefa" />
-                    {latestRequest.requestor_full_name}
-                    <p>{latestRequest.phone_number}</p>
-                  </CardTitle>
-                  <div className="lg:flex items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2 font-kefa text-xs">
-                      <Building className="h-4 w-4 font-kefa" />
-                      {latestRequest.department}
+                  {/* Name + Phone */}
+                  <div className="flex items-start gap-2">
+                    <User className="h-6 w-6 text-primary" />
+                    <div className="flex flex-col">
+                      <p className="font-medium text-base leading-tight">{latestRequest.requestor_full_name}</p>
+                      <p className="text-xs text-sky-500">{latestRequest.phone_number}</p>
                     </div>
-                    <div className="flex items-center gap-2 text-green-500 ">
-                      <Calendar className="h-4 w-4 " />
-                       {formatDate(latestRequest.created_at)}
+                  </div>
+
+                  {/* Department + Date */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:gap-6 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2 space-y-2">
+                      <Building className="h-4 w-4" />
+                      <span className="truncate font-kefa text-xs">{latestRequest.department}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-green-500">
+                      <Calendar className="h-4 w-4" />
+                      <span>{formatDate(latestRequest.created_at)}</span>
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+
+                {/* Right section: Status */}
+                <div className="flex items-center gap-2 sm:mt-0 mt-2 self-start sm:self-auto">
                   {getStatusIcon(latestRequest.status)}
                   <Badge variant={getStatusVariant(latestRequest.status)} className="text-sm">
                     {latestRequest.status || "pending"}
                   </Badge>
-                  
                 </div>
               </div>
+
 
               <div className="flex items-center gap-4 text-xs text-muted-foreground pt-4">
                 <span className="flex items-center gap-1">
@@ -725,6 +745,8 @@ export default function RequestedPropertyAdminCards() {
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-green-600" />
                 Most Requested Resources
+                <Star className="fill-amber-400 text-amber-400" fill="ge-red-500" size={16}/>
+                 <Star className="fill-amber-400 text-amber-400" fill="ge-red-500" size={16}/>
               </CardTitle>
               <p className="text-sm text-muted-foreground">Top resources across all departments</p>
             </CardHeader>
