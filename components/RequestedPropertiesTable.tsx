@@ -821,14 +821,14 @@ export default function RequestedPropertyAdminCards() {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Latest Request - Large Card */}
-        <div className="mb-8">
+        <div className="mb-4">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Calendar className="h-5 w-5" />
             Latest Request
           </h2>
-          <Card className={cn("shadow-lg border-2")}>
-            <CardHeader className="pb-4">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-center mr-10">
+          <Card className={cn("shadow-lg border-2 border-sky-900")}>
+            <CardHeader className="pb-2">
+              <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:mt-0 mt-2 self-start sm:self-auto">
                 {/* Left section: User Info */}
                 <div className="space-y-2">
                   {/* Name + Phone */}
@@ -855,7 +855,7 @@ export default function RequestedPropertyAdminCards() {
                     <div className="flex flex-col md:flex-row items-start md:items-center gap-2 text-green-500 font-semibold">
                       <Badge
                         variant="outline"
-                        className="flex items-center gap-2 p-2"
+                        className="flex items-center gap-2 p-2 border-orange-500"
                       >
                         <Calendar className="h-4 w-4 text-amber-600" />
                         <span>
@@ -864,7 +864,7 @@ export default function RequestedPropertyAdminCards() {
                       </Badge>
                       <Badge
                         variant="outline"
-                        className="flex items-center gap-2 p-2"
+                        className="flex items-center gap-2 p-2 border-orange-500"
                       >
                         <Calendar className="h-4 w-4  text-amber-600" />
                         <span>

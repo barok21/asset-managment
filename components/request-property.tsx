@@ -89,6 +89,7 @@ const RequestProperty = () => {
   const [departments, setDepartments] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [formReady, setFormReady] = useState(false);
+  
 
   const requesterForm = useForm<RequesterFormData>({
     resolver: zodResolver(requesterSchema),
@@ -244,7 +245,7 @@ const RequestProperty = () => {
             properties.{" "}
             <Badge
               variant={"outline"}
-              className="border-2 border-sky-500 bg-sky-900 font-semibold"
+              className="border-2 border-sky-500 bg-sky-200 drak:border-sky-500 dark:bg-sky-900  font-semibold"
             >
               {"< "}5 min
             </Badge>
@@ -497,46 +498,67 @@ const RequestProperty = () => {
                 <FormField
                   control={propertyForm.control}
                   name="property_name"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Property Name</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "justify-between",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value || "Select a property"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]">
-                          <Command>
-                            <CommandInput placeholder="Search property..." />
-                            <CommandList>
-                              <CommandEmpty>No property found.</CommandEmpty>
-                              <CommandGroup>
-                                {propertyOptions.map((item) => (
-                                  <CommandItem
-                                    key={item}
-                                    value={item}
-                                    onSelect={() => field.onChange(item)}
-                                  >
-                                    {item}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const [open, setOpen] = useState(false);
+
+                    const [search, setSearch] = useState("");
+
+                    const filteredOptions = propertyOptions
+                      .filter((item) =>
+                        item.toLowerCase().includes(search.toLowerCase())
+                      )
+                      .slice(0, 5);
+
+
+                    return (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Property Name</FormLabel>
+                        <Popover open={open} onOpenChange={setOpen}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                "justify-between",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value || "Select a property"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent>
+                            <Command>
+                              <CommandInput
+                                placeholder="Search property..."
+                                value={search}
+                                onValueChange={setSearch}
+                              />
+                              <CommandList>
+                                <CommandEmpty>No property found.</CommandEmpty>
+                                <CommandGroup>
+                                  {filteredOptions.map((item) => (
+                                    <CommandItem
+                                      key={item}
+                                      value={item}
+                                      onSelect={() => {
+                                        field.onChange(item);
+                                        setOpen(false);
+                                      }}
+                                    >
+                                      {item}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
+
 
                 <FormField
                   control={propertyForm.control}
