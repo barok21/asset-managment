@@ -2,7 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { createSupaseClient } from "../supabase";
-import { canApproveRejects } from "./user.action";
+import { canApproveRejects, getUserProfile } from "./user.action";
 import type {
   CreateProperty,
   GetAllProperties,
@@ -459,11 +459,19 @@ export const updateRequestStatus = async (
   }
 
   const supabase = createSupaseClient();
+  const approverProfile = await getUserProfile();
+
+  if (!approverProfile) {
+    throw new Error("Failed to get approver profile");
+  }
 
   const updateData: any = {
     status,
+    approved_by: approverProfile.fullName,
+    rejected_by: approverProfile.userId,
     updated_at: new Date().toISOString(),
   };
+
   if (status === "rejected" && rejectionReason) {
     updateData.overall_rejection_reason = rejectionReason;
   }
@@ -473,8 +481,36 @@ export const updateRequestStatus = async (
     .update(updateData)
     .eq("request_batch_id", batchId);
 
-  if (error) throw error;
+  if (error) throw new Error(error.message);
 };
+
+// export const updateRequestStatus = async (
+//   batchId: string,
+//   status: "approved" | "rejected",
+//   rejectionReason?: string
+// ) => {
+//   const canApprove = await canApproveRejects();
+//   if (!canApprove) {
+//     throw new Error("You don't have permission to approve/reject requests");
+//   }
+
+//   const supabase = createSupaseClient();
+
+//   const updateData: any = {
+//     status,
+//     updated_at: new Date().toISOString(),
+//   };
+//   if (status === "rejected" && rejectionReason) {
+//     updateData.overall_rejection_reason = rejectionReason;
+//   }
+
+//   const { error } = await supabase
+//     .from("request_property")
+//     .update(updateData)
+//     .eq("request_batch_id", batchId);
+
+//   if (error) throw error;
+// };
 
 // Update individual request item status with reason
 export const updateRequestItemStatus = async (
@@ -590,6 +626,7 @@ export const fetchGroupedRequestedPropertiesWithUsage = async (
         end_date: item.end_date,
         return_date: item.return_date,
         event_type: item.event_type,
+        approved_by: item.approved_by,
         properties: [],
       };
     }

@@ -98,6 +98,7 @@ interface RequestGroup {
   start_time: string;
   end_time: string;
   event_type: string;
+  approved_by: string;
 }
 
 interface RejectionDialogState {
@@ -876,6 +877,24 @@ export default function RequestedPropertyAdminCards() {
                   <p className="text-xs">
                     Event type: {latestRequest.event_type}
                   </p>
+                  <Separator className="" />
+
+                  {latestRequest.approved_by && (
+                    <div>
+                      {latestRequest.status === "approved" ||
+                      latestRequest.status === "partial"
+                        ? `Approved by: ${latestRequest.approved_by}`
+                        : latestRequest.status === "rejected"
+                        ? `Rejected by: ${latestRequest.approved_by}`
+                        : null}
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-5 w-5 text-sky-500" />
+                        <Badge variant="outline" className="text-sm">
+                          {getRoleDisplay(userRole)}
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Right section: Status */}
@@ -1077,6 +1096,17 @@ export default function RequestedPropertyAdminCards() {
                         <p className="text-muted-foreground font-kefa text-xs pt-1">
                           {selectedRequest?.department}
                         </p>
+                        <Separator />
+                        {selectedRequest?.approved_by && (
+                          <p>
+                            {selectedRequest?.status === "approved" ||
+                            selectedRequest?.status === "partial"
+                              ? `Approved by: ${selectedRequest?.approved_by}`
+                              : selectedRequest?.status === "rejected"
+                              ? `Rejected by: ${selectedRequest?.approved_by}`
+                              : null}
+                          </p>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2 ml-auto">

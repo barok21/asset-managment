@@ -1,19 +1,19 @@
-import { auth } from "@clerk/nextjs/server"
-import { redirect } from "next/navigation"
-import OnboardingWrapper from "@/components/onboarding-wrapper"
-import UserRoleManagement from "@/components/user-role-management"
-import { getUserRole } from "@/lib/actions/user.action"
-import RequestedPropertyAdminCards from "@/components/RequestedPropertiesTable"
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import OnboardingWrapper from "@/components/onboarding-wrapper";
+import UserRoleManagement from "@/components/user-role-management";
+import { getUserRole } from "@/lib/actions/user.action";
+import RequestedPropertyAdminCards from "@/components/RequestedPropertiesTable";
 
 export default async function DashboardPage() {
-  const { userId } = await auth()
+  const { userId } = await auth();
 
   if (!userId) {
-    redirect("/sign-in")
+    redirect("/sign-in");
   }
 
-  const userRole = await getUserRole()
-  const canManageRoles = ["higher_manager", "admin"].includes(userRole)
+  const userRole = await getUserRole();
+  const canManageRoles = ["higher_manager", "admin"].includes(userRole);
 
   return (
     <OnboardingWrapper>
@@ -37,7 +37,5 @@ export default async function DashboardPage() {
         </div>
       </div>
     </OnboardingWrapper>
-  )
+  );
 }
-
-
