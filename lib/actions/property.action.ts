@@ -623,7 +623,7 @@ export const fetchGroupedRequestedPropertiesWithUsage = async (
         event_desc: item.event_desc,
         phone_number: item.phone_number,
         start_date: item.start_date,
-        end_date: item.end_date,
+        // end_date: item.end_date,
         return_date: item.return_date,
         event_type: item.event_type,
         approved_by: item.approved_by,

@@ -51,7 +51,6 @@ export interface RequestProperty {
   request_batch_id: string;
   created_at?: string;
   start_date: string;
-  end_date: string;
   status?: string;
 }
 

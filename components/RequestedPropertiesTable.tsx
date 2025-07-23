@@ -511,7 +511,7 @@ export default function RequestedPropertyAdminCards() {
           </div>
         </div>
       )}
-      <div className="flex flex-col sm:flex-row items-start gap-2 p-3 bg-sky-50 dark:bg-sky-950/20 rounded-lg border border-sky-200 dark:border-sky-800">
+      <div className="flex sm:flex-row items-start gap-2 p-3 bg-sky-50 dark:bg-sky-950/20 rounded-lg border border-sky-200 dark:border-sky-800">
         <BadgeInfoIcon className="h-4 w-4 text-sky-600 mt-0.5 flex-shrink-0" />
         <div className="flex-1">
           <p className="text-sm font-medium text-sky-800 dark:text-sky-200">
@@ -537,7 +537,7 @@ export default function RequestedPropertyAdminCards() {
                 variant="outline"
                 className="text-sky-600 font-semibold ml-1"
               >
-                {formatDate(request.end_date)}
+                {formatDate(request.return_date)}
               </Badge>
             </Badge>
           </div>

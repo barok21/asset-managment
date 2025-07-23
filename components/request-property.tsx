@@ -67,10 +67,10 @@ const requesterSchema = z.object({
   event_desc: z.string().min(1, "Event description is required"),
   phone_number: z.string().min(1, "Phone number is required"),
   return_date: z.string().min(1, "Phone number is required"),
-  start_time: z.string().min(1, "Start time is required"),
-  end_time: z.string().min(1, "End time is required"),
+  // start_time: z.string().min(1, "Start time is required"),
+  // end_time: z.string().min(1, "End time is required"),
   start_date: z.string().min(1, "Start date is required"),
-  end_date: z.string().min(1, "End date is required"),
+  // end_date: z.string().min(1, "End date is required"),
   event_type: z.string().min(1, "Event type is required"),
 });
 
@@ -101,9 +101,6 @@ const RequestProperty = () => {
       phone_number: "",
       return_date: "",
       start_date: "",
-      end_date: "",
-      start_time: "", // ✅ not undefined
-      end_time: "",
       event_type: "",
     },
   });
@@ -201,10 +198,9 @@ const RequestProperty = () => {
         department: requesterData.department,
         event_desc: requesterData.event_desc,
         phone_number: requesterData.phone_number,
-        start_time: requesterData.start_time,
-        end_time: requesterData.end_time,
+        // start_time: requesterData.start_time,
+        // end_time: requesterData.end_time,
         start_date: requesterData.start_date,
-        end_date: requesterData.end_date,
         request_batch_id: batchId,
         event_type: requesterData.event_type,
         return_date: requesterData.return_date,
@@ -370,47 +366,39 @@ const RequestProperty = () => {
                       </FormItem>
                     )}
                   />
-                  <Controller
+                
+                  <FormField
                     control={requesterForm.control}
-                    name="start_date" // to register with RHF
-                    render={() => (
-                      <Calendar04
-                        startDate={requesterForm.watch("start_date")}
-                        endDate={requesterForm.watch("end_date")}
-                        onStartDateChange={(val) =>
-                          requesterForm.setValue("start_date", val)
-                        }
-                        onEndDateChange={(val) =>
-                          requesterForm.setValue("end_date", val)
-                        }
-                        startTime={requesterForm.watch("start_time")}
-                        endTime={requesterForm.watch("end_time")}
-                        onStartTimeChange={(val) =>
-                          requesterForm.setValue("start_time", val)
-                        }
-                        onEndTimeChange={(val) =>
-                          requesterForm.setValue("end_time", val)
-                        }
-                      />
+                    name="start_date"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Event Date</FormLabel>
+
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="justify-start text-left w-full"
+                            >
+                              {field.value
+                                ? new Date(field.value).toLocaleDateString()
+                                : "Pick a event date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <SingleDatePicker
+                              selected={
+                                field.value ? new Date(field.value) : undefined
+                              }
+                              onChange={field.onChange}
+                            />
+                          </PopoverContent>
+                        </Popover>
+
+                        <FormMessage />
+                      </FormItem>
                     )}
                   />
-
-                  {/* Show validation errors */}
-                  <div className="mt-1 space-y-1 text-sm text-red-500">
-                    {requesterForm.formState.errors.start_date && (
-                      <p>{requesterForm.formState.errors.start_date.message}</p>
-                    )}
-                    {requesterForm.formState.errors.end_date && (
-                      <p>{requesterForm.formState.errors.end_date.message}</p>
-                    )}
-                    {requesterForm.formState.errors.start_time && (
-                      <p>{requesterForm.formState.errors.start_time.message}</p>
-                    )}
-                    {requesterForm.formState.errors.end_time && (
-                      <p>{requesterForm.formState.errors.end_time.message}</p>
-                    )}
-                  </div>
-
                   <FormField
                     control={requesterForm.control}
                     name="return_date"
@@ -443,12 +431,13 @@ const RequestProperty = () => {
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={requesterForm.control}
                     name="event_type"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Event Type</FormLabel>
+                        <FormLabel>Event Location</FormLabel>
                         <Select
                           onValueChange={field.onChange}
                           value={field.value}
@@ -478,7 +467,7 @@ const RequestProperty = () => {
           </section>
 
           {/* Property Adding Form */}
-          <section className="bg-card p-4 rounded-2xl border">
+          <section className="bg-card p-4 rounded-2xl border-2 border-sky-900">
             <h2 className="text-xl font-semibold mb-4 flex items-center justify-between">
               <span>Add Property</span>
               <Button
