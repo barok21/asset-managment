@@ -1,11 +1,12 @@
+
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider"
 import { ClerkProvider } from '@clerk/nextjs'
 import { dark } from '@clerk/themes'
 import { Toaster } from "sonner";
-import localFont from "next/font/local"
-import OnboardingWrapper from "@/components/onboarding-wrapper";
+import localFont from "next/font/local";
+import { Providers } from "./providers";
 
 // ✅ define kefa locally, NOT exported
 const kefa = localFont({
@@ -23,6 +24,7 @@ export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
+  
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className={kefa.variable}>
@@ -34,10 +36,13 @@ export default function RootLayout({
             attribute="class"
             defaultTheme="system"
             enableSystem
-            disableTransitionOnChange
+            // disableTransitionOnChange
           >
             <Toaster theme="system" position="bottom-right" />
+            <Providers>
+
             {children}
+            </Providers>
           </ThemeProvider>
         </ClerkProvider>
       </body>

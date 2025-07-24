@@ -366,47 +366,18 @@ const RequestProperty = () => {
                       </FormItem>
                     )}
                   />
-                
-                  <FormField
+                 
+                 <FormField
                     control={requesterForm.control}
                     name="start_date"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Event Date</FormLabel>
+                    render={({ field }) => {
+                    const [open, setOpen] = useState(false);
 
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className="justify-start text-left w-full"
-                            >
-                              {field.value
-                                ? new Date(field.value).toLocaleDateString()
-                                : "Pick a event date"}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <SingleDatePicker
-                              selected={
-                                field.value ? new Date(field.value) : undefined
-                              }
-                              onChange={field.onChange}
-                            />
-                          </PopoverContent>
-                        </Popover>
-
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={requesterForm.control}
-                    name="return_date"
-                    render={({ field }) => (
+                    return (
                       <FormItem className="flex flex-col">
                         <FormLabel>Return Date</FormLabel>
 
-                        <Popover>
+                        <Popover open={open} onOpenChange={setOpen}>
                           <PopoverTrigger asChild>
                             <Button
                               variant="outline"
@@ -419,17 +390,55 @@ const RequestProperty = () => {
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0">
                             <SingleDatePicker
-                              selected={
-                                field.value ? new Date(field.value) : undefined
-                              }
-                              onChange={field.onChange}
+                              selected={field.value ? new Date(field.value) : undefined}
+                              onChange={(date) => {
+                                field.onChange(date);
+                                setOpen(false);
+                              }}
                             />
                           </PopoverContent>
                         </Popover>
 
                         <FormMessage />
                       </FormItem>
-                    )}
+                    )}}
+                  />
+
+                  <FormField
+                    control={requesterForm.control}
+                    name="return_date"
+                    render={({ field }) => {
+                    const [open, setOpen] = useState(false);
+
+                    return (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Return Date</FormLabel>
+
+                        <Popover open={open} onOpenChange={setOpen}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="justify-start text-left w-full"
+                            >
+                              {field.value
+                                ? new Date(field.value).toLocaleDateString()
+                                : "Pick a return date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <SingleDatePicker
+                              selected={field.value ? new Date(field.value) : undefined}
+                              onChange={(date) => {
+                                field.onChange(date);
+                                setOpen(false);
+                              }}
+                            />
+                          </PopoverContent>
+                        </Popover>
+
+                        <FormMessage />
+                      </FormItem>
+                    )}}
                   />
 
                   <FormField

@@ -45,7 +45,7 @@
 
 :root {
   --font-kefa: 'kefa', sans-serif;
-  --background: oklch(0.9900 0 0);
+  --background: oklch(92.567% 0.00326 198.879);
   --foreground: oklch(0 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0 0 0);

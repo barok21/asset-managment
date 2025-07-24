@@ -4,6 +4,10 @@ import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { ModeToggle } from "./modeToggle"
 import { UserButton } from "@clerk/nextjs"
+import NotificationProvider from "./notification"
+import { SimpleNotificationBell } from "./simple-notification-bell"
+
+
 
 export function SiteHeader() {
   return (
@@ -27,6 +31,8 @@ export function SiteHeader() {
             </a>
           </Button>
         </div>
+          {/* <NotificationProvider/> */}
+          {/* <SimpleNotificationBell/> */}
           <ModeToggle/>
           <UserButton/>
       </div>

@@ -64,6 +64,7 @@ import {
 import { cn } from "@/lib/utils";
 import { COMMON_REJECTION_REASONS } from "@/types/constants";
 import RequestProperty from "./request-property";
+import { Skeleton } from "./ui/skeleton";
 
 interface PropertyItem {
   id: string;
