@@ -1,21 +1,45 @@
-"use client"
+"use client";
 
-import type React from "react"
+import { Button } from "@/components/ui/button";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { useState } from "react"
-import { EnhancedNotificationSystem } from "@/components/enhanced-notification-system"
-import { NotificationTestPanel } from "@/components/notification-test-panel"
-import { NotificationCenter } from "@/components/notification-center"
-import { useNotifications } from "@/hooks/use-notifications"
+import type React from "react";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useState } from "react";
+import { Toaster } from "sonner";
+import { EnhancedNotificationSystem } from "@/components/enhanced-notification-system";
+import { NotificationTestPanel } from "@/components/notification-test-panel";
+import { NotificationDebugPanel } from "@/components/notification-debug-panel";
+import { NotificationCenter } from "@/components/notification-center";
+import { useNotifications } from "@/hooks/use-notifications";
+import type { Notification } from "@/types/notification";
 
 function QueryWrapper({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient())
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 5000, // Consider data fresh for 5 seconds
+            refetchOnWindowFocus: true,
+            refetchOnReconnect: true,
+          },
+        },
+      })
+  );
+  return (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
 }
 
 function DashboardContent() {
-  const { notifications, unreadCount, isLoading } = useNotifications()
+  const { notifications, unreadCount, isLoading, error, refetch } =
+    useNotifications();
+
+  const handleNotificationClick = (notification: Notification) => {
+    console.log("Dashboard notification clicked:", notification);
+    // Handle notification clicks here
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -34,28 +58,42 @@ function DashboardContent() {
         <div className="grid gap-8">
           {/* Welcome section */}
           <div className="bg-card rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-2">Welcome to your Dashboard</h2>
-            <p className="text-muted-foreground">
-              You have {unreadCount} unread notifications. The system automatically checks for new notifications every
-              30 seconds.
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold mb-2">
+                  Welcome to your Dashboard
+                </h2>
+                <p className="text-muted-foreground">
+                  You have {unreadCount} unread notifications. The system
+                  automatically checks for new notifications every 15 seconds.
+                </p>
+                {error && (
+                  <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded text-red-700 text-sm">
+                    Error loading notifications. Check the debug panel below.
+                  </div>
+                )}
+              </div>
+              <Button onClick={() => refetch()} variant="outline" size="sm">
+                Refresh
+              </Button>
+            </div>
           </div>
 
           {/* Dashboard grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Full notification center */}
             <div className="lg:col-span-2">
-              <h3 className="text-lg font-semibold mb-4">Recent Notifications</h3>
+              <h3 className="text-lg font-semibold mb-4">
+                Recent Notifications
+              </h3>
               <NotificationCenter
                 variant="full"
                 enableRealTimeUpdates={true}
                 enableBrowserNotifications={true}
                 showFilter={true}
                 showMarkAllRead={true}
-                onNotificationClick={(notification) => {
-                  console.log("Notification clicked:", notification)
-                  // Handle notification clicks here
-                }}
+                updateInterval={15000}
+                onNotificationClick={handleNotificationClick}
               />
             </div>
 
@@ -65,31 +103,50 @@ function DashboardContent() {
                 <h3 className="text-lg font-semibold mb-4">Quick Stats</h3>
                 <div className="bg-card rounded-lg p-4 space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total Notifications</span>
-                    <span className="font-semibold">{notifications.length}</span>
+                    <span className="text-muted-foreground">
+                      Total Notifications
+                    </span>
+                    <span className="font-semibold">
+                      {notifications.length}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Unread</span>
-                    <span className="font-semibold text-blue-600">{unreadCount}</span>
+                    <span className="font-semibold text-blue-600">
+                      {unreadCount}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Read</span>
-                    <span className="font-semibold text-green-600">{notifications.length - unreadCount}</span>
+                    <span className="font-semibold text-green-600">
+                      {notifications.length - unreadCount}
+                    </span>
                   </div>
                 </div>
               </div>
 
+              {/* Debug panel */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Debug</h3>
+                <NotificationDebugPanel />
+              </div>
+
               {/* Test panel for creating notifications */}
               <div>
-                <h3 className="text-lg font-semibold mb-4">Test Notifications</h3>
+                <h3 className="text-lg font-semibold mb-4">
+                  Test Notifications
+                </h3>
                 <NotificationTestPanel />
               </div>
             </div>
           </div>
         </div>
       </main>
+
+      {/* Toast notifications */}
+      <Toaster position="top-right" />
     </div>
-  )
+  );
 }
 
 export function DashboardClient() {
@@ -97,5 +154,5 @@ export function DashboardClient() {
     <QueryWrapper>
       <DashboardContent />
     </QueryWrapper>
-  )
+  );
 }

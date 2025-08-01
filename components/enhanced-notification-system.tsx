@@ -1,95 +1,107 @@
-"use client"
+"use client";
 
-import { NotificationCenter } from "@/components/notification-center"
-import { createClientSupabaseClient } from "@/lib/supabase/client"
-import { useUser } from "@clerk/nextjs"
-
-interface SystemNotification {
-  id: string
-  title: string
-  message: string
-  isRead: boolean
-  createdAt: string
-  priority: "low" | "medium" | "high"
-}
+import { NotificationCenter } from "@/components/notification-center";
+import { createClientSupabaseClient } from "@/lib/supabase/client";
+import { useUser } from "@clerk/nextjs";
+import { useQueryClient } from "@tanstack/react-query";
+import type { Notification, NotificationRow } from "@/types/notification";
 
 export function EnhancedNotificationSystem() {
-  const { user, isLoaded } = useUser()
+  const { user, isLoaded } = useUser();
+  const queryClient = useQueryClient();
 
-  const fetchNotifications = async () => {
-    if (!user?.id) return []
+  const fetchNotifications = async (): Promise<Notification[]> => {
+    if (!user?.id) return [];
 
-    const supabase = createClientSupabaseClient()
+    const supabase = createClientSupabaseClient();
 
-    // Fetch notifications from Supabase using your schema
     const { data, error } = await supabase
       .from("notifications")
       .select("*")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-
-      console.log(data)
+      .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Failed to fetch notifications:", error)
-      return []
+      console.error("Failed to fetch notifications:", error);
+      return [];
     }
 
     return (
-      data?.map((item: any) => ({
+      data?.map((item: NotificationRow) => ({
         id: item.id.toString(),
         title: item.title,
         message: item.message,
         isRead: item.is_read,
         createdAt: item.created_at,
-        priority: item.priority as "low" | "medium" | "high",
+        priority: item.priority || "low",
       })) || []
-    )
-  }
+    );
+  };
 
   const markAsRead = async (id: string) => {
-    const supabase = createClientSupabaseClient()
+    console.log("Enhanced system marking as read:", id);
+    const supabase = createClientSupabaseClient();
 
-    const { error } = await supabase.from("notifications").update({ is_read: true }).eq("id", id)
+    const { error } = await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("id", Number.parseInt(id));
 
     if (error) {
-      console.error("Failed to mark notification as read:", error)
-      throw error
+      console.error("Failed to mark notification as read:", error);
+      throw error;
     }
-  }
+
+    // Invalidate queries to refresh data
+    queryClient.invalidateQueries({ queryKey: ["notifications"] });
+  };
 
   const markAllAsRead = async () => {
-    if (!user?.id) return
+    if (!user?.id) return;
 
-    const supabase = createClientSupabaseClient()
+    console.log("Enhanced system marking all as read for user:", user.id);
+    const supabase = createClientSupabaseClient();
 
     const { error } = await supabase
       .from("notifications")
       .update({ is_read: true })
       .eq("user_id", user.id)
-      .eq("is_read", false)
+      .eq("is_read", false);
 
     if (error) {
-      console.error("Failed to mark all notifications as read:", error)
-      throw error
+      console.error("Failed to mark all notifications as read:", error);
+      throw error;
     }
-  }
+
+    // Invalidate queries to refresh data
+    queryClient.invalidateQueries({ queryKey: ["notifications"] });
+  };
 
   const deleteNotification = async (id: string) => {
-    const supabase = createClientSupabaseClient()
+    console.log("Enhanced system deleting notification:", id);
+    const supabase = createClientSupabaseClient();
 
-    const { error } = await supabase.from("notifications").delete().eq("id", id)
+    const { error } = await supabase
+      .from("notifications")
+      .delete()
+      .eq("id", Number.parseInt(id));
 
     if (error) {
-      console.error("Failed to delete notification:", error)
-      throw error
+      console.error("Failed to delete notification:", error);
+      throw error;
     }
-  }
 
-  const handleNotificationClick = (notification: any) => {
-    console.log("Notification clicked:", notification)
-    // Handle notification clicks here
-  }
+    // Invalidate queries to refresh data
+    queryClient.invalidateQueries({ queryKey: ["notifications"] });
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    console.log("Notification clicked:", notification);
+    // Automatically mark as read when clicked
+    if (!notification.isRead) {
+      markAsRead(notification.id);
+    }
+  };
 
   if (!isLoaded) {
     return (
@@ -99,11 +111,11 @@ export function EnhancedNotificationSystem() {
           <p className="text-muted-foreground">Loading notifications...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (!user) {
-    return null
+    return null;
   }
 
   return (
@@ -116,9 +128,9 @@ export function EnhancedNotificationSystem() {
       onNotificationClick={handleNotificationClick}
       enableRealTimeUpdates={true}
       enableBrowserNotifications={true}
-      updateInterval={30000}
+      updateInterval={15000} // Reduced interval for faster updates
       showFilter={true}
       showMarkAllRead={true}
     />
-  )
+  );
 }

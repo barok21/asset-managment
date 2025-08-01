@@ -1,135 +1,210 @@
-"use server"
+"use server";
 
-import { auth } from "@clerk/nextjs/server"
-import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { auth } from "@clerk/nextjs/server";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
 
 export interface CreateNotificationData {
-  userId: string
-  title: string
-  message: string
-  priority?: "low" | "medium" | "high"
+  userId: string;
+  title: string;
+  message: string;
+  priority?: "low" | "medium" | "high";
+}
+
+interface UserProfile {
+  user_id: string;
 }
 
 export async function createNotification(data: CreateNotificationData) {
-  const supabase = createServerSupabaseClient()
+  try {
+    const supabase = createServerSupabaseClient();
 
-  const { error } = await supabase.from("notifications").insert({
-    user_id: data.userId,
-    title: data.title,
-    message: data.message,
-    priority: data.priority || "low",
-    is_read: false,
-  })
+    const { error } = await supabase.from("notifications").insert({
+      user_id: data.userId,
+      title: data.title,
+      message: data.message,
+      priority: data.priority || "low",
+      is_read: false,
+    });
 
-  if (error) {
-    console.error("Failed to create notification:", error)
-    throw error
+    if (error) {
+      console.error("Supabase error:", error);
+      throw new Error(`Failed to create notification: ${error.message}`);
+    }
+
+    // Revalidate to refresh any server-side cached data
+    revalidatePath("/dashboard");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to create notification:", error);
+    throw error;
   }
 }
 
 export async function notifyUserApproval(userId: string, approved: boolean) {
-  await createNotification({
+  return await createNotification({
     userId,
     title: approved ? "Account Approved" : "Account Rejected",
     message: approved
       ? "Your account has been approved and you now have access to the system."
       : "Your account application has been rejected. Please contact support for more information.",
     priority: "high",
-  })
+  });
 }
 
 export async function notifyRoleChange(userId: string, newRole: string) {
-  await createNotification({
+  return await createNotification({
     userId,
     title: "Role Updated",
     message: `Your role has been updated to ${newRole.replace("_", " ")}.`,
     priority: "medium",
-  })
+  });
 }
 
 export async function notifyAllManagers(
   title: string,
   message: string,
-  priority: "low" | "medium" | "high" = "medium",
+  priority: "low" | "medium" | "high" = "medium"
 ) {
-  const supabase = createServerSupabaseClient()
+  try {
+    const supabase = createServerSupabaseClient();
 
-  // Get all managers
-  const { data: managers } = await supabase
-    .from("user_profiles")
-    .select("user_id")
-    .in("role", ["finance_manager", "property_manager", "higher_manager", "admin"])
+    // Get all managers
+    const { data: managers, error: fetchError } = await supabase
+      .from("user_profiles")
+      .select("user_id")
+      .in("role", [
+        "finance_manager",
+        "property_manager",
+        "higher_manager",
+        "admin",
+      ]);
 
-  if (managers) {
-    const notifications = managers.map((manager) => ({
-      user_id: manager.user_id,
-      title,
-      message,
-      priority,
-      is_read: false,
-    }))
+    if (fetchError) {
+      console.error("Error fetching managers:", fetchError);
+      throw new Error(`Failed to fetch managers: ${fetchError.message}`);
+    }
 
-    await supabase.from("notifications").insert(notifications)
+    if (managers && managers.length > 0) {
+      const notifications = managers.map((manager: UserProfile) => ({
+        user_id: manager.user_id,
+        title,
+        message,
+        priority,
+        is_read: false,
+      }));
+
+      const { error: insertError } = await supabase
+        .from("notifications")
+        .insert(notifications);
+
+      if (insertError) {
+        console.error("Error inserting notifications:", insertError);
+        throw new Error(
+          `Failed to create notifications: ${insertError.message}`
+        );
+      }
+    }
+
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to notify managers:", error);
+    throw error;
   }
 }
 
-export async function notifyNewUserRegistration(newUserName: string, newUserEmail: string) {
-  await notifyAllManagers(
+export async function notifyNewUserRegistration(
+  newUserName: string,
+  newUserEmail: string
+) {
+  return await notifyAllManagers(
     "New User Registration",
     `${newUserName} (${newUserEmail}) has registered and is pending approval.`,
-    "medium",
-  )
+    "medium"
+  );
 }
 
 export async function createSystemAnnouncement(
   title: string,
   message: string,
-  priority: "low" | "medium" | "high" = "low",
+  priority: "low" | "medium" | "high" = "low"
 ) {
-  const supabase = createServerSupabaseClient()
+  try {
+    const supabase = createServerSupabaseClient();
 
-  // Get all active users
-  const { data: users } = await supabase.from("user_profiles").select("user_id").eq("status", "approved")
+    // Get all active users
+    const { data: users, error: fetchError } = await supabase
+      .from("user_profiles")
+      .select("user_id")
+      .eq("status", "approved");
 
-  if (users) {
-    const notifications = users.map((user) => ({
-      user_id: user.user_id,
-      title,
-      message,
-      priority,
-      is_read: false,
-    }))
+    if (fetchError) {
+      console.error("Error fetching users:", fetchError);
+      throw new Error(`Failed to fetch users: ${fetchError.message}`);
+    }
 
-    await supabase.from("notifications").insert(notifications)
+    if (users && users.length > 0) {
+      const notifications = users.map((user: UserProfile) => ({
+        user_id: user.user_id,
+        title,
+        message,
+        priority,
+        is_read: false,
+      }));
+
+      const { error: insertError } = await supabase
+        .from("notifications")
+        .insert(notifications);
+
+      if (insertError) {
+        console.error("Error inserting system notifications:", insertError);
+        throw new Error(
+          `Failed to create system announcement: ${insertError.message}`
+        );
+      }
+    }
+
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to create system announcement:", error);
+    throw error;
   }
 }
 
 // Server action to get current user's notifications
 export async function getCurrentUserNotifications() {
-  const { userId } = await auth()
-  if (!userId) return []
+  try {
+    const { userId } = await auth();
+    if (!userId) return [];
 
-  const supabase = createServerSupabaseClient()
+    const supabase = createServerSupabaseClient();
 
-  const { data, error } = await supabase
-    .from("notifications")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("Failed to fetch notifications:", error)
-    return []
+    if (error) {
+      console.error("Failed to fetch notifications:", error);
+      return [];
+    }
+
+    return (
+      data?.map((item: any) => ({
+        id: item.id.toString(),
+        title: item.title,
+        message: item.message,
+        isRead: item.is_read,
+        createdAt: item.created_at,
+        priority: item.priority as "low" | "medium" | "high",
+      })) || []
+    );
+  } catch (error) {
+    console.error("Error in getCurrentUserNotifications:", error);
+    return [];
   }
-
-  return (
-    data?.map((item: any) => ({
-      id: item.id.toString(),
-      title: item.title,
-      message: item.message,
-      isRead: item.is_read,
-      createdAt: item.created_at,
-      priority: item.priority as "low" | "medium" | "high",
-    })) || []
-  )
 }

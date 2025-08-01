@@ -1,20 +1,27 @@
-import { auth } from "@clerk/nextjs/server"
-import { redirect } from "next/navigation"
-import { checkUserProfileExists } from "@/lib/actions/user.action"
-import { NotificationsPageClient } from "./notifications-client"
+import React from "react";
 
-export default async function NotificationsPage() {
-  const { userId } = await auth()
+const page = () => {
+  return <div>page</div>;
+};
 
-  if (!userId) {
-    redirect("/sign-in")
-  }
+export default page;
+// import { auth } from "@clerk/nextjs/server"
+// import { redirect } from "next/navigation"
+// import { checkUserProfileExists } from "@/lib/actions/user.action"
+// import { NotificationsPageClient } from "./notifications-client"
 
-  const profileExists = await checkUserProfileExists(userId)
+// export default async function NotificationsPage() {
+//   const { userId } = await auth()
 
-  if (!profileExists) {
-    redirect("/onboarding")
-  }
+//   if (!userId) {
+//     redirect("/sign-in")
+//   }
 
-  return <NotificationsPageClient />
-}
+//   const profileExists = await checkUserProfileExists(userId)
+
+//   if (!profileExists) {
+//     redirect("/onboarding")
+//   }
+
+//   return <NotificationsPageClient />
+// }
