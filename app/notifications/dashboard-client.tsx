@@ -95,7 +95,7 @@ function DashboardContent() {
                 Recent Notifications
               </h3>
               <NotificationCenter
-                variant="popover"
+                variant="full"
                 fetchNotifications={async () => notifications}
                 onMarkAsRead={async (id) => markAsRead(id)}
                 onMarkAllAsRead={async () => markAllAsRead()}

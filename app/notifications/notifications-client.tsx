@@ -1,7 +1,7 @@
 import React from "react";
 
-const note = () => {
-  return <div>note</div>;
+const page = () => {
+  return <div>page</div>;
 };
 
-export default note;
+export default page;

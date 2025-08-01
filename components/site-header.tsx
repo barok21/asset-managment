@@ -1,13 +1,13 @@
-'use client'
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { ModeToggle } from "./modeToggle"
-import { UserButton } from "@clerk/nextjs"
-import NotificationProvider from "./notification"
-import { SimpleNotificationBell } from "./simple-notification-bell"
-
-
+"use client";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { ModeToggle } from "./modeToggle";
+import { UserButton } from "@clerk/nextjs";
+import NotificationProvider from "./notification";
+import { SimpleNotificationBell } from "./simple-notification-bell";
+import { DashboardClient } from "@/app/dashboard/dashboard-client";
+import { DashboardClientOne } from "@/app/notifications/dashboard-client copy";
 
 export function SiteHeader() {
   return (
@@ -31,11 +31,12 @@ export function SiteHeader() {
             </a>
           </Button>
         </div>
-          {/* <NotificationProvider/> */}
-          {/* <SimpleNotificationBell/> */}
-          <ModeToggle/>
-          <UserButton/>
+        {/* <NotificationProvider/> */}
+        {/* <SimpleNotificationBell/> */}
+        <ModeToggle />
+        <DashboardClientOne />
+        <UserButton />
       </div>
     </header>
-  )
+  );
 }

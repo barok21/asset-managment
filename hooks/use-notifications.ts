@@ -164,6 +164,35 @@ export function useNotifications() {
     },
   });
 
+  const clearAllNotificationsMutation = useMutation({
+    mutationFn: async () => {
+      if (!user?.id) return;
+
+      console.log("Hook: Clearing all notifications for user:", user.id);
+      const supabase = createClientSupabaseClient();
+      const { error } = await supabase
+        .from("notifications")
+        .delete()
+        .eq("user_id", user.id);
+
+      if (error) {
+        console.error("Hook: Error clearing all notifications:", error);
+        throw error;
+      }
+      console.log("Hook: Successfully cleared all notifications");
+    },
+    onSuccess: () => {
+      console.log("Hook: Clear all notifications success callback");
+      // Optimistically clear all notifications from cache
+      queryClient.setQueryData(["notifications", user?.id], []);
+      // Also invalidate to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+    onError: (error) => {
+      console.error("Hook: Failed to clear all notifications:", error);
+    },
+  });
+
   const {
     data: notifications = [],
     isLoading,
@@ -199,9 +228,11 @@ export function useNotifications() {
     markAsRead: markAsReadMutation.mutate,
     markAllAsRead: markAllAsReadMutation.mutate,
     deleteNotification: deleteNotificationMutation.mutate,
+    clearAllNotifications: clearAllNotificationsMutation.mutate, // Add this line
     isMarkingAsRead: markAsReadMutation.isPending,
     isMarkingAllAsRead: markAllAsReadMutation.isPending,
     isDeletingNotification: deleteNotificationMutation.isPending,
+    isClearingAllNotifications: clearAllNotificationsMutation.isPending, // Add this line
   };
 }
 

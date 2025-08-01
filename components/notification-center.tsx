@@ -26,6 +26,7 @@ import {
   Filter,
   MoreHorizontal,
   X,
+  TimerIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Notification } from "@/types/notification";
@@ -143,6 +144,7 @@ export interface NotificationCenterProps {
     description?: string;
   };
   theme?: NotificationCenterTheme;
+  onClearAllNotifications?: () => Promise<void>;
 }
 
 const defaultFetchNotifications = async (): Promise<Notification[]> => {
@@ -160,6 +162,10 @@ const defaultMarkAllAsRead = async (): Promise<void> => {
 
 const defaultDeleteNotification = async (): Promise<void> => {
   await new Promise((resolve) => setTimeout(resolve, 300));
+};
+
+const defaultClearAllNotifications = async (): Promise<void> => {
+  await new Promise((resolve) => setTimeout(resolve, 500));
 };
 
 const formatTimeAgo = (dateString: string) => {
@@ -262,10 +268,20 @@ const NotificationItem = ({
             </p>
 
             <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/40">
-              <span className={theme.notificationContent.timestamp}>
-                {formatTimeAgo(notification.createdAt)}
-              </span>
-
+              <div className="flex flex-col">
+                <span
+                  className={cn(
+                    theme.notificationContent.timestamp,
+                    "flex items-center gap-2"
+                  )}
+                >
+                  <TimerIcon size={15} />
+                  {formatTimeAgo(notification.createdAt)}
+                </span>
+                <span className="text-xs text-muted-foreground pt-2">
+                  double click to mark as read
+                </span>
+              </div>
               <Badge
                 variant={
                   notification.priority === "high"
@@ -346,6 +362,7 @@ export function NotificationCenter({
     description: "New notifications will appear here.",
   },
   theme = defaultTheme,
+  onClearAllNotifications = defaultClearAllNotifications,
 }: NotificationCenterProps) {
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
@@ -447,6 +464,15 @@ export function NotificationCenter({
       );
       // Also invalidate to refetch fresh data
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  const clearAllNotificationsMutation = useMutation({
+    mutationFn: onClearAllNotifications,
+    onSuccess: () => {
+      if (staticNotifications) return;
+
+      queryClient.setQueryData(["notifications"], []);
     },
   });
 
@@ -581,6 +607,21 @@ export function NotificationCenter({
                     Mark All Read
                   </Button>
                 )}
+                {filteredNotifications.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={theme.buttons.markAllRead}
+                    onClick={() => clearAllNotificationsMutation.mutate()}
+                    disabled={clearAllNotificationsMutation.isPending}
+                  >
+                    {clearAllNotificationsMutation.isPending ? (
+                      <div className="animate-spin rounded-full h-3 w-3 border-b border-current mr-1.5" />
+                    ) : (
+                      <Trash2 className="mr-1.5 h-3 w-3" />
+                    )}
+                  </Button>
+                )}
               </div>
             )}
 
@@ -645,6 +686,22 @@ export function NotificationCenter({
                   <CheckCheck className="mr-1.5 h-3 w-3" />
                 )}
                 <span className="max-md:hidden">Mark All Read</span>
+              </Button>
+            )}
+            {filteredNotifications.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className={theme.buttons.markAllRead}
+                onClick={() => clearAllNotificationsMutation.mutate()}
+                disabled={clearAllNotificationsMutation.isPending}
+              >
+                {clearAllNotificationsMutation.isPending ? (
+                  <div className="animate-spin rounded-full h-3 w-3 border-b border-current mr-1.5" />
+                ) : (
+                  <Trash2 className="mr-1.5 h-3 w-3" />
+                )}
+                <span className="max-md:hidden">Clear All</span>
               </Button>
             )}
           </div>

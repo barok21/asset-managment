@@ -1,27 +1,61 @@
-import React from "react";
+// import { AppSidebar } from "@/components/app-sidebar";
+// import { ChartAreaInteractive } from "@/components/chart-area-interactive";
+// import { DataTable } from "@/components/data-table";
+// import { SectionCards } from "@/components/section-cards";
+// import { SiteHeader } from "@/components/site-header";
+// import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
-const page = () => {
-  return <div>page</div>;
-};
+// import data from "./data.json";
+// import OnboardingWrapper from "@/components/onboarding-wrapper";
 
-export default page;
-// import { auth } from "@clerk/nextjs/server"
-// import { redirect } from "next/navigation"
-// import { checkUserProfileExists } from "@/lib/actions/user.action"
-// import { NotificationsPageClient } from "./notifications-client"
-
-// export default async function NotificationsPage() {
-//   const { userId } = await auth()
-
-//   if (!userId) {
-//     redirect("/sign-in")
-//   }
-
-//   const profileExists = await checkUserProfileExists(userId)
-
-//   if (!profileExists) {
-//     redirect("/onboarding")
-//   }
-
-//   return <NotificationsPageClient />
+// export default function Page() {
+//   return (
+//     <OnboardingWrapper>
+//       <SidebarProvider
+//         style={
+//           {
+//             "--sidebar-width": "calc(var(--spacing) * 72)",
+//             "--header-height": "calc(var(--spacing) * 12)",
+//           } as React.CSSProperties
+//         }
+//       >
+//         <AppSidebar variant="inset" />
+//         <SidebarInset>
+//           <SiteHeader />
+//           <div className="flex flex-1 flex-col">
+//             <div className="@container/main flex flex-1 flex-col gap-2">
+//               <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+//                 <SectionCards />
+//                 <div className="px-4 lg:px-6">
+//                   <ChartAreaInteractive />
+//                 </div>
+//                 <DataTable data={data} />
+//               </div>
+//             </div>
+//           </div>
+//         </SidebarInset>
+//       </SidebarProvider>
+//     </OnboardingWrapper>
+//   );
 // }
+
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import { checkUserProfileExists } from "@/lib/actions/user.action";
+import { DashboardClient } from "./dashboard-client";
+
+export default async function DashboardPage() {
+  const { userId } = await auth();
+
+  if (!userId) {
+    redirect("/sign-in");
+  }
+
+  const profileExists = await checkUserProfileExists(userId);
+
+  if (!profileExists) {
+    redirect("/onboarding");
+  }
+
+  return <DashboardClient />;
+}

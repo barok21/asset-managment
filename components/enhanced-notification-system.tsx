@@ -97,6 +97,28 @@ export function EnhancedNotificationSystem() {
     console.log("Enhanced system successfully deleted:", id);
   };
 
+  const clearAllNotifications = async () => {
+    if (!user?.id) return;
+
+    console.log(
+      "Enhanced system clearing all notifications for user:",
+      user.id
+    );
+    const supabase = createClientSupabaseClient();
+
+    const { error } = await supabase
+      .from("notifications")
+      .delete()
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.error("Enhanced system clear all error:", error);
+      throw error;
+    }
+
+    console.log("Enhanced system successfully cleared all notifications");
+  };
+
   const handleNotificationClick = (notification: Notification) => {
     console.log("Enhanced system notification clicked:", notification);
     // Automatically mark as read when clicked
@@ -127,6 +149,7 @@ export function EnhancedNotificationSystem() {
       onMarkAsRead={markAsRead}
       onMarkAllAsRead={markAllAsRead}
       onDeleteNotification={deleteNotification}
+      onClearAllNotifications={clearAllNotifications} // Add this line
       onNotificationClick={handleNotificationClick}
       enableRealTimeUpdates={true}
       enableBrowserNotifications={true}

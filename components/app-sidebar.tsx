@@ -175,8 +175,8 @@ const data = {
           url: "/setting/role",
         },
         {
-          title: "Billing",
-          url: "#",
+          title: "Notifications",
+          url: "/dashboard",
         },
         {
           title: "Limits",
