@@ -1,9 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-
 import type React from "react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { Toaster } from "sonner";
@@ -20,7 +18,7 @@ function QueryWrapper({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 5000, // Consider data fresh for 5 seconds
+            staleTime: 5000,
             refetchOnWindowFocus: true,
             refetchOnReconnect: true,
           },
@@ -33,12 +31,23 @@ function QueryWrapper({ children }: { children: React.ReactNode }) {
 }
 
 function DashboardContent() {
-  const { notifications, unreadCount, isLoading, error, refetch } =
-    useNotifications();
+  const {
+    notifications,
+    unreadCount,
+    isLoading,
+    error,
+    refetch,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+  } = useNotifications();
 
   const handleNotificationClick = (notification: Notification) => {
     console.log("Dashboard notification clicked:", notification);
-    // Handle notification clicks here
+    // Automatically mark as read when clicked
+    if (!notification.isRead) {
+      markAsRead(notification.id);
+    }
   };
 
   return (
@@ -47,8 +56,6 @@ function DashboardContent() {
       <header className="border-b bg-card sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold">Dashboard</h1>
-
-          {/* Notification Bell */}
           <EnhancedNotificationSystem />
         </div>
       </header>
@@ -65,7 +72,7 @@ function DashboardContent() {
                 </h2>
                 <p className="text-muted-foreground">
                   You have {unreadCount} unread notifications. The system
-                  automatically checks for new notifications every 15 seconds.
+                  automatically checks for new notifications every 10 seconds.
                 </p>
                 {error && (
                   <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded text-red-700 text-sm">
@@ -88,12 +95,16 @@ function DashboardContent() {
               </h3>
               <NotificationCenter
                 variant="full"
+                fetchNotifications={async () => notifications}
+                onMarkAsRead={async (id) => markAsRead(id)}
+                onMarkAllAsRead={async () => markAllAsRead()}
+                onDeleteNotification={async (id) => deleteNotification(id)}
+                onNotificationClick={handleNotificationClick}
                 enableRealTimeUpdates={true}
                 enableBrowserNotifications={true}
                 showFilter={true}
                 showMarkAllRead={true}
-                updateInterval={15000}
-                onNotificationClick={handleNotificationClick}
+                updateInterval={10000}
               />
             </div>
 
@@ -143,7 +154,6 @@ function DashboardContent() {
         </div>
       </main>
 
-      {/* Toast notifications */}
       <Toaster position="top-right" />
     </div>
   );

@@ -13,6 +13,7 @@ export function EnhancedNotificationSystem() {
   const fetchNotifications = async (): Promise<Notification[]> => {
     if (!user?.id) return [];
 
+    console.log("Enhanced system fetching notifications for:", user.id);
     const supabase = createClientSupabaseClient();
 
     const { data, error } = await supabase
@@ -22,11 +23,13 @@ export function EnhancedNotificationSystem() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Failed to fetch notifications:", error);
+      console.error("Enhanced system fetch error:", error);
       return [];
     }
 
-    return (
+    console.log("Enhanced system raw data:", data);
+
+    const notifications =
       data?.map((item: NotificationRow) => ({
         id: item.id.toString(),
         title: item.title,
@@ -34,8 +37,10 @@ export function EnhancedNotificationSystem() {
         isRead: item.is_read,
         createdAt: item.created_at,
         priority: item.priority || "low",
-      })) || []
-    );
+      })) || [];
+
+    console.log("Enhanced system processed notifications:", notifications);
+    return notifications;
   };
 
   const markAsRead = async (id: string) => {
@@ -48,12 +53,11 @@ export function EnhancedNotificationSystem() {
       .eq("id", Number.parseInt(id));
 
     if (error) {
-      console.error("Failed to mark notification as read:", error);
+      console.error("Enhanced system mark as read error:", error);
       throw error;
     }
 
-    // Invalidate queries to refresh data
-    queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    console.log("Enhanced system successfully marked as read:", id);
   };
 
   const markAllAsRead = async () => {
@@ -69,12 +73,11 @@ export function EnhancedNotificationSystem() {
       .eq("is_read", false);
 
     if (error) {
-      console.error("Failed to mark all notifications as read:", error);
+      console.error("Enhanced system mark all as read error:", error);
       throw error;
     }
 
-    // Invalidate queries to refresh data
-    queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    console.log("Enhanced system successfully marked all as read");
   };
 
   const deleteNotification = async (id: string) => {
@@ -87,19 +90,18 @@ export function EnhancedNotificationSystem() {
       .eq("id", Number.parseInt(id));
 
     if (error) {
-      console.error("Failed to delete notification:", error);
+      console.error("Enhanced system delete error:", error);
       throw error;
     }
 
-    // Invalidate queries to refresh data
-    queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    console.log("Enhanced system successfully deleted:", id);
   };
 
   const handleNotificationClick = (notification: Notification) => {
-    console.log("Notification clicked:", notification);
+    console.log("Enhanced system notification clicked:", notification);
     // Automatically mark as read when clicked
     if (!notification.isRead) {
-      markAsRead(notification.id);
+      markAsRead(notification.id).catch(console.error);
     }
   };
 
@@ -128,7 +130,7 @@ export function EnhancedNotificationSystem() {
       onNotificationClick={handleNotificationClick}
       enableRealTimeUpdates={true}
       enableBrowserNotifications={true}
-      updateInterval={15000} // Reduced interval for faster updates
+      updateInterval={10000}
       showFilter={true}
       showMarkAllRead={true}
     />

@@ -11,11 +11,11 @@ export function useNotifications() {
 
   const fetchNotifications = async (): Promise<Notification[]> => {
     if (!user?.id) {
-      console.log("No user ID available");
+      console.log("Hook: No user ID available");
       return [];
     }
 
-    console.log("Fetching notifications for user:", user.id);
+    console.log("Hook: Fetching notifications for user:", user.id);
 
     try {
       const supabase = createClientSupabaseClient();
@@ -27,7 +27,7 @@ export function useNotifications() {
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("Failed to fetch notifications:", {
+        console.error("Hook: Failed to fetch notifications:", {
           error,
           message: error.message,
           details: error.details,
@@ -37,7 +37,7 @@ export function useNotifications() {
         return [];
       }
 
-      console.log("Raw notification data:", data);
+      console.log("Hook: Raw notification data:", data);
 
       const notifications =
         data?.map((item: NotificationRow) => ({
@@ -49,17 +49,17 @@ export function useNotifications() {
           priority: item.priority || "low",
         })) || [];
 
-      console.log("Processed notifications:", notifications);
+      console.log("Hook: Processed notifications:", notifications);
       return notifications;
     } catch (err) {
-      console.error("Unexpected error fetching notifications:", err);
+      console.error("Hook: Unexpected error fetching notifications:", err);
       return [];
     }
   };
 
   const markAsReadMutation = useMutation({
     mutationFn: async (id: string) => {
-      console.log("Marking notification as read:", id);
+      console.log("Hook: Marking notification as read:", id);
       const supabase = createClientSupabaseClient();
       const { error } = await supabase
         .from("notifications")
@@ -67,23 +67,29 @@ export function useNotifications() {
         .eq("id", Number.parseInt(id));
 
       if (error) {
-        console.error("Error marking as read:", error);
+        console.error("Hook: Error marking as read:", error);
         throw error;
       }
+      console.log("Hook: Successfully marked as read:", id);
     },
     onSuccess: (_, id) => {
-      console.log("Successfully marked as read:", id);
-      // Update the cache immediately
+      console.log("Hook: Mark as read success callback for:", id);
+      // Update cache optimistically
       queryClient.setQueryData(
         ["notifications", user?.id],
-        (old: Notification[] = []) =>
-          old.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+        (old: Notification[] = []) => {
+          const updated = old.map((n) =>
+            n.id === id ? { ...n, isRead: true } : n
+          );
+          console.log("Hook: Updated cache data:", updated);
+          return updated;
+        }
       );
-      // Also invalidate to refetch fresh data
-      queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] });
+      // Also invalidate to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
     onError: (error) => {
-      console.error("Failed to mark as read:", error);
+      console.error("Hook: Failed to mark as read:", error);
     },
   });
 
@@ -91,7 +97,7 @@ export function useNotifications() {
     mutationFn: async () => {
       if (!user?.id) return;
 
-      console.log("Marking all notifications as read for user:", user.id);
+      console.log("Hook: Marking all notifications as read for user:", user.id);
       const supabase = createClientSupabaseClient();
       const { error } = await supabase
         .from("notifications")
@@ -100,28 +106,33 @@ export function useNotifications() {
         .eq("is_read", false);
 
       if (error) {
-        console.error("Error marking all as read:", error);
+        console.error("Hook: Error marking all as read:", error);
         throw error;
       }
+      console.log("Hook: Successfully marked all as read");
     },
     onSuccess: () => {
-      console.log("Successfully marked all as read");
-      // Update the cache immediately
+      console.log("Hook: Mark all as read success callback");
+      // Update cache optimistically
       queryClient.setQueryData(
         ["notifications", user?.id],
-        (old: Notification[] = []) => old.map((n) => ({ ...n, isRead: true }))
+        (old: Notification[] = []) => {
+          const updated = old.map((n) => ({ ...n, isRead: true }));
+          console.log("Hook: Updated all cache data:", updated);
+          return updated;
+        }
       );
-      // Also invalidate to refetch fresh data
-      queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] });
+      // Also invalidate to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
     onError: (error) => {
-      console.error("Failed to mark all as read:", error);
+      console.error("Hook: Failed to mark all as read:", error);
     },
   });
 
   const deleteNotificationMutation = useMutation({
     mutationFn: async (id: string) => {
-      console.log("Deleting notification:", id);
+      console.log("Hook: Deleting notification:", id);
       const supabase = createClientSupabaseClient();
       const { error } = await supabase
         .from("notifications")
@@ -129,22 +140,27 @@ export function useNotifications() {
         .eq("id", Number.parseInt(id));
 
       if (error) {
-        console.error("Error deleting notification:", error);
+        console.error("Hook: Error deleting notification:", error);
         throw error;
       }
+      console.log("Hook: Successfully deleted notification:", id);
     },
     onSuccess: (_, id) => {
-      console.log("Successfully deleted notification:", id);
-      // Update the cache immediately
+      console.log("Hook: Delete success callback for:", id);
+      // Update cache optimistically
       queryClient.setQueryData(
         ["notifications", user?.id],
-        (old: Notification[] = []) => old.filter((n) => n.id !== id)
+        (old: Notification[] = []) => {
+          const updated = old.filter((n) => n.id !== id);
+          console.log("Hook: Updated cache after delete:", updated);
+          return updated;
+        }
       );
-      // Also invalidate to refetch fresh data
-      queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] });
+      // Also invalidate to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
     onError: (error) => {
-      console.error("Failed to delete notification:", error);
+      console.error("Hook: Failed to delete notification:", error);
     },
   });
 
@@ -157,13 +173,22 @@ export function useNotifications() {
     queryKey: ["notifications", user?.id],
     queryFn: fetchNotifications,
     enabled: isLoaded && !!user?.id,
-    refetchInterval: 30000,
+    refetchInterval: 10000, // Refetch every 10 seconds
     retry: 3,
     retryDelay: 1000,
-    staleTime: 5000, // Consider data fresh for 5 seconds
+    staleTime: 2000, // Consider data stale after 2 seconds
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  console.log("Hook: Current state:", {
+    notificationCount: notifications.length,
+    unreadCount,
+    isLoading,
+    hasError: !!error,
+  });
 
   return {
     notifications,

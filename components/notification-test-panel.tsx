@@ -28,6 +28,18 @@ export function NotificationTestPanel() {
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [isLoading, setIsLoading] = useState(false);
 
+  const refreshNotifications = () => {
+    console.log("Test panel: Refreshing notifications");
+    // Invalidate all notification queries
+    queryClient.invalidateQueries({ queryKey: ["notifications"] });
+
+    // Force refetch after a short delay
+    setTimeout(() => {
+      console.log("Test panel: Force refetch after delay");
+      queryClient.refetchQueries({ queryKey: ["notifications"] });
+    }, 500);
+  };
+
   const handleCreateNotification = async () => {
     if (!user?.id || !title || !message) {
       toast.error("Please fill in all fields");
@@ -36,27 +48,30 @@ export function NotificationTestPanel() {
 
     setIsLoading(true);
     try {
-      await createNotification({
+      console.log("Test panel: Creating notification", {
+        title,
+        message,
+        priority,
+      });
+
+      const result = await createNotification({
         userId: user.id,
         title,
         message,
         priority,
       });
 
+      console.log("Test panel: Notification created successfully", result);
       toast.success("Notification created successfully!");
+
       setTitle("");
       setMessage("");
       setPriority("medium");
 
-      // Invalidate and refetch notifications immediately
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-
-      // Also trigger a manual refetch after a short delay
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      }, 1000);
+      // Refresh notifications immediately
+      refreshNotifications();
     } catch (error) {
-      console.error("Error creating notification:", error);
+      console.error("Test panel: Error creating notification:", error);
       toast.error("Failed to create notification");
     } finally {
       setIsLoading(false);
@@ -71,22 +86,28 @@ export function NotificationTestPanel() {
 
     setIsLoading(true);
     try {
-      await createSystemAnnouncement(title, message, priority);
+      console.log("Test panel: Creating system announcement", {
+        title,
+        message,
+        priority,
+      });
 
+      const result = await createSystemAnnouncement(title, message, priority);
+
+      console.log(
+        "Test panel: System announcement created successfully",
+        result
+      );
       toast.success("System announcement sent to all users!");
+
       setTitle("");
       setMessage("");
       setPriority("medium");
 
-      // Invalidate and refetch notifications immediately
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-
-      // Also trigger a manual refetch after a short delay
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      }, 1000);
+      // Refresh notifications immediately
+      refreshNotifications();
     } catch (error) {
-      console.error("Error creating system announcement:", error);
+      console.error("Test panel: Error creating system announcement:", error);
       toast.error("Failed to create system announcement");
     } finally {
       setIsLoading(false);
@@ -146,9 +167,19 @@ export function NotificationTestPanel() {
           </Button>
         </div>
 
+        <Button
+          onClick={refreshNotifications}
+          variant="outline"
+          className="w-full bg-transparent"
+          size="sm"
+        >
+          Refresh Notifications
+        </Button>
+
         <div className="text-xs text-muted-foreground">
           <p>• Personal: Creates notification for you only</p>
           <p>• System Wide: Sends to all approved users</p>
+          <p>• Use Refresh button if notifications don't appear</p>
         </div>
       </CardContent>
     </Card>

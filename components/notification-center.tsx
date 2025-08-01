@@ -28,15 +28,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  isRead: boolean;
-  createdAt: string;
-  priority?: "low" | "medium" | "high";
-}
+import type { Notification } from "@/types/notification";
 
 export interface NotificationCenterTheme {
   container: string;
@@ -186,7 +178,7 @@ const formatTimeAgo = (dateString: string) => {
 };
 
 const getPriorityColor = (
-  priority?: "low" | "medium" | "high",
+  priority: "low" | "medium" | "high",
   theme: NotificationCenterTheme = defaultTheme
 ) => {
   switch (priority) {
@@ -274,20 +266,18 @@ const NotificationItem = ({
                 {formatTimeAgo(notification.createdAt)}
               </span>
 
-              {notification.priority && (
-                <Badge
-                  variant={
-                    notification.priority === "high"
-                      ? "destructive"
-                      : notification.priority === "medium"
-                      ? "default"
-                      : "secondary"
-                  }
-                  className="text-xs px-2 py-0.5"
-                >
-                  {notification.priority}
-                </Badge>
-              )}
+              <Badge
+                variant={
+                  notification.priority === "high"
+                    ? "destructive"
+                    : notification.priority === "medium"
+                    ? "default"
+                    : "secondary"
+                }
+                className="text-xs px-2 py-0.5"
+              >
+                {notification.priority}
+              </Badge>
             </div>
           </div>
 
@@ -392,7 +382,7 @@ export function NotificationCenter({
   });
 
   const displayNotifications = staticNotifications || notifications;
-  const prevDisplayNotificationsRef = React.useRef<Notification[]>(null);
+  const prevDisplayNotificationsRef = React.useRef<Notification[]>([]);
 
   useEffect(() => {
     if (
@@ -403,7 +393,7 @@ export function NotificationCenter({
     ) {
       const oldNotifications = prevDisplayNotificationsRef.current;
 
-      if (oldNotifications) {
+      if (oldNotifications.length > 0) {
         const newNotifications = displayNotifications.filter(
           (n) => !oldNotifications.some((on) => on.id === n.id)
         );
@@ -412,7 +402,7 @@ export function NotificationCenter({
           if (!notification.isRead) {
             new Notification(notification.title, {
               body: notification.message,
-              // icon: "/short-logo.png",
+              icon: "/favicon.ico",
             });
           }
         });
@@ -429,6 +419,8 @@ export function NotificationCenter({
       queryClient.setQueryData(["notifications"], (old: Notification[] = []) =>
         old.map((n) => (n.id === id ? { ...n, isRead: true } : n))
       );
+      // Also invalidate to refetch fresh data
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
 
@@ -440,6 +432,8 @@ export function NotificationCenter({
       queryClient.setQueryData(["notifications"], (old: Notification[] = []) =>
         old.map((n) => ({ ...n, isRead: true }))
       );
+      // Also invalidate to refetch fresh data
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
 
@@ -451,6 +445,8 @@ export function NotificationCenter({
       queryClient.setQueryData(["notifications"], (old: Notification[] = []) =>
         old.filter((n) => n.id !== id)
       );
+      // Also invalidate to refetch fresh data
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
 
