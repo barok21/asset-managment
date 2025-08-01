@@ -41,6 +41,7 @@ export interface NotificationCenterTheme {
     unread: string;
     read: string;
     hover: string;
+    high: string;
   };
   notificationContent: {
     title: string;
@@ -85,6 +86,7 @@ const defaultTheme: NotificationCenterTheme = {
     unread:
       "border-l-4 border-l-blue-500 bg-blue-50/30 dark:bg-blue-950/10 dark:border-l-blue-400",
     read: "border-border hover:border-muted-foreground/20",
+    high: "border-l-4 border-l-blue-500 bg-blue-50/30 dark:bg-blue-950/10 dark:border-l-red-400",
     hover: "hover:bg-muted/30 hover:shadow-sm",
   },
   notificationContent: {

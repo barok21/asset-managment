@@ -7,10 +7,11 @@ import { useState } from "react";
 import { Toaster } from "sonner";
 import { EnhancedNotificationSystem } from "@/components/enhanced-notification-system";
 import { NotificationTestPanel } from "@/components/notification-test-panel";
-import { NotificationDebugPanel } from "@/components/notification-debug-panel";
+// import { NotificationDebugPanel } from "@/components/notification-debug-panel";
 import { useNotifications } from "@/hooks/use-notifications";
 import type { Notification } from "@/types/notification";
 import { NotificationCenter } from "@/components/notification-center";
+import Link from "next/link";
 
 function QueryWrapper({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -56,8 +57,9 @@ function DashboardContent() {
       {/* Header with notification bell */}
       <header className="border-b bg-card sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <EnhancedNotificationSystem />
+          <Link href="/dashboard">Dashboard</Link>
+          <h1 className="text-2xl font-bold"></h1>
+          {/* <EnhancedNotificationSystem /> */}
         </div>
       </header>
 
@@ -140,15 +142,13 @@ function DashboardContent() {
 
               {/* Debug panel */}
               <div>
-                <h3 className="text-lg font-semibold mb-4">Debug</h3>
-                <NotificationDebugPanel />
+                {/* <h3 className="text-lg font-semibold mb-4">Debug</h3> */}
+                {/* <NotificationDebugPanel /> */}
               </div>
 
               {/* Test panel for creating notifications */}
               <div>
-                <h3 className="text-lg font-semibold mb-4">
-                  Test Notifications
-                </h3>
+                <h3 className="text-lg font-semibold mb-4">Send a message</h3>
                 <NotificationTestPanel />
               </div>
             </div>

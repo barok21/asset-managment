@@ -6,8 +6,8 @@ import { ModeToggle } from "./modeToggle";
 import { UserButton } from "@clerk/nextjs";
 import NotificationProvider from "./notification";
 import { SimpleNotificationBell } from "./simple-notification-bell";
-import { DashboardClient } from "@/app/dashboard/dashboard-client";
 import { DashboardClientOne } from "@/app/notifications/dashboard-client copy";
+import { EnhancedNotificationSystem } from "./enhanced-notification-system";
 
 export function SiteHeader() {
   return (
@@ -31,10 +31,9 @@ export function SiteHeader() {
             </a>
           </Button>
         </div>
-        {/* <NotificationProvider/> */}
-        {/* <SimpleNotificationBell/> */}
         <ModeToggle />
-        <DashboardClientOne />
+        {/* <DashboardClientOne /> */}
+        <EnhancedNotificationSystem />
         <UserButton />
       </div>
     </header>

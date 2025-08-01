@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Toaster } from "sonner";
 import { EnhancedNotificationSystem } from "@/components/enhanced-notification-system";
 import { NotificationTestPanel } from "@/components/notification-test-panel";
-import { NotificationDebugPanel } from "@/components/notification-debug-panel";
+// import { NotificationDebugPanel } from "@/components/notification-debug-panel";
 import { useNotifications } from "@/hooks/use-notifications";
 import type { Notification } from "@/types/notification";
 import { NotificationCenter } from "@/components/notification-center";

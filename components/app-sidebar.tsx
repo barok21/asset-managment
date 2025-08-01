@@ -176,7 +176,7 @@ const data = {
         },
         {
           title: "Notifications",
-          url: "/dashboard",
+          url: "/notifications",
         },
         {
           title: "Limits",

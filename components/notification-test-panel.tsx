@@ -117,7 +117,7 @@ export function NotificationTestPanel() {
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle>Test Notifications</CardTitle>
+        <CardTitle>You can leave a message to admin here!</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <Input
