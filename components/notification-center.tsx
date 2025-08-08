@@ -27,9 +27,11 @@ import {
   MoreHorizontal,
   X,
   TimerIcon,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Notification } from "@/types/notification";
+import Link from "next/link";
 
 export interface NotificationCenterTheme {
   container: string;
@@ -552,7 +554,7 @@ export function NotificationCenter({
         >
           <div className={theme.popover.header}>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-5 justify-evenly">
                 <h4 className="font-semibold text-lg text-foreground max-sm:text-xs">
                   Notifications
                 </h4>
@@ -561,6 +563,12 @@ export function NotificationCenter({
                     {unreadCount} new
                   </Badge>
                 )}
+                <Link
+                  href="/notifications"
+                  className="hover:text-green-500 hover:animate-spin justify-end"
+                >
+                  <Settings size={20} />
+                </Link>
               </div>
               <Button
                 variant="ghost"
