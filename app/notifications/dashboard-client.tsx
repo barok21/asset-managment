@@ -52,6 +52,15 @@ function DashboardContent() {
     }
   };
 
+  const isMobileDevice =
+    typeof navigator !== "undefined" &&
+    /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
+  const enableBrowserNotify =
+    typeof window !== "undefined" &&
+    "Notification" in window &&
+    Notification?.permission === "granted" &&
+    !isMobileDevice;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header with notification bell */}
@@ -105,7 +114,7 @@ function DashboardContent() {
                 onClearAllNotifications={async () => clearAllNotifications()} // Pass onClearAllNotifications
                 onNotificationClick={handleNotificationClick}
                 enableRealTimeUpdates={true}
-                enableBrowserNotifications={true}
+                enableBrowserNotifications={enableBrowserNotify}
                 showFilter={true}
                 showMarkAllRead={true}
                 updateInterval={10000}

@@ -26,12 +26,22 @@ import {
   Filter,
   MoreHorizontal,
   X,
-  TimerIcon,
+  Settings2,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Notification } from "@/types/notification";
 import Link from "next/link";
+
+const isMobileDevice = () =>
+  typeof navigator !== "undefined" &&
+  /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
+
+const canUseBrowserNotifications = () =>
+  typeof window !== "undefined" &&
+  "Notification" in window &&
+  Notification?.permission === "granted" &&
+  !isMobileDevice();
 
 export interface NotificationCenterTheme {
   container: string;
@@ -43,7 +53,6 @@ export interface NotificationCenterTheme {
     unread: string;
     read: string;
     hover: string;
-    high: string;
   };
   notificationContent: {
     title: string;
@@ -88,7 +97,6 @@ const defaultTheme: NotificationCenterTheme = {
     unread:
       "border-l-4 border-l-blue-500 bg-blue-50/30 dark:bg-blue-950/10 dark:border-l-blue-400",
     read: "border-border hover:border-muted-foreground/20",
-    high: "border-l-4 border-l-blue-500 bg-blue-50/30 dark:bg-blue-950/10 dark:border-l-red-400",
     hover: "hover:bg-muted/30 hover:shadow-sm",
   },
   notificationContent: {
@@ -272,17 +280,10 @@ const NotificationItem = ({
             </p>
 
             <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/40">
-              <div className="flex flex-col">
-                <span
-                  className={cn(
-                    theme.notificationContent.timestamp,
-                    "flex items-center gap-2"
-                  )}
-                >
-                  <TimerIcon size={15} />
-                  {formatTimeAgo(notification.createdAt)}
-                </span>
-              </div>
+              <span className={theme.notificationContent.timestamp}>
+                {formatTimeAgo(notification.createdAt)}
+              </span>
+
               <Badge
                 variant={
                   notification.priority === "high"
@@ -370,14 +371,22 @@ export function NotificationCenter({
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (
-      enableBrowserNotifications &&
-      typeof window !== "undefined" &&
-      "Notification" in window
-    ) {
-      if (Notification.permission === "default") {
-        Notification.requestPermission();
+    if (!enableBrowserNotifications) return;
+    try {
+      if (!("Notification" in window)) return;
+      // Do NOT auto-request on mobile; many mobile browsers require user gestures
+      if (isMobileDevice()) return;
+
+      if (
+        Notification.permission === "default" &&
+        typeof Notification.requestPermission === "function"
+      ) {
+        Notification.requestPermission().catch(() => {
+          // Ignore permission errors, especially on mobile
+        });
       }
+    } catch (e) {
+      console.warn("Notification permission request skipped:", e);
     }
   }, [enableBrowserNotifications]);
 
@@ -403,14 +412,25 @@ export function NotificationCenter({
   const prevDisplayNotificationsRef = React.useRef<Notification[]>([]);
 
   useEffect(() => {
-    if (
-      enableBrowserNotifications &&
-      typeof window !== "undefined" &&
-      "Notification" in window &&
-      Notification.permission === "granted"
-    ) {
-      const oldNotifications = prevDisplayNotificationsRef.current;
+    if (!enableBrowserNotifications) {
+      prevDisplayNotificationsRef.current = displayNotifications;
+      return;
+    }
 
+    try {
+      if (!("Notification" in window)) return;
+      if (Notification.permission !== "granted") return;
+      if (isMobileDevice()) return;
+      // Avoid showing system notifications when the tab is visible
+      if (
+        typeof document !== "undefined" &&
+        document.visibilityState !== "hidden"
+      ) {
+        prevDisplayNotificationsRef.current = displayNotifications;
+        return;
+      }
+
+      const oldNotifications = prevDisplayNotificationsRef.current;
       if (oldNotifications.length > 0) {
         const newNotifications = displayNotifications.filter(
           (n) => !oldNotifications.some((on) => on.id === n.id)
@@ -418,15 +438,23 @@ export function NotificationCenter({
 
         newNotifications.forEach((notification) => {
           if (!notification.isRead) {
-            new Notification(notification.title, {
-              body: notification.message,
-              icon: "/favicon.ico",
-            });
+            try {
+              new Notification(notification.title, {
+                body: notification.message,
+                icon: "/favicon.ico",
+              });
+            } catch (err) {
+              // Some browsers throw even with guards; swallow to prevent app crash
+              console.warn("Failed to show browser notification:", err);
+            }
           }
         });
       }
+    } catch (err) {
+      console.warn("Browser notifications suppressed due to error:", err);
+    } finally {
+      prevDisplayNotificationsRef.current = displayNotifications;
     }
-    prevDisplayNotificationsRef.current = displayNotifications;
   }, [displayNotifications, enableBrowserNotifications]);
 
   const markAsReadMutation = useMutation({
@@ -554,7 +582,7 @@ export function NotificationCenter({
         >
           <div className={theme.popover.header}>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-5 justify-evenly">
+              <div className="flex items-center gap-2">
                 <h4 className="font-semibold text-lg text-foreground max-sm:text-xs">
                   Notifications
                 </h4>
@@ -563,11 +591,8 @@ export function NotificationCenter({
                     {unreadCount} new
                   </Badge>
                 )}
-                <Link
-                  href="/notifications"
-                  className="hover:text-green-500 hover:animate-spin justify-end"
-                >
-                  <Settings size={20} />
+                <Link href="/notifications">
+                  <Settings />
                 </Link>
               </div>
               <Button

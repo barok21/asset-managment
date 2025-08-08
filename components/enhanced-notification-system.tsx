@@ -6,6 +6,10 @@ import { useUser } from "@clerk/nextjs";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Notification, NotificationRow } from "@/types/notification";
 
+const isMobileDevice = () =>
+  typeof navigator !== "undefined" &&
+  /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
+
 export function EnhancedNotificationSystem() {
   const { user, isLoaded } = useUser();
   const queryClient = useQueryClient();
@@ -127,6 +131,12 @@ export function EnhancedNotificationSystem() {
     }
   };
 
+  const enableBrowserNotify =
+    typeof window !== "undefined" &&
+    "Notification" in window &&
+    Notification?.permission === "granted" &&
+    !isMobileDevice();
+
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -152,7 +162,7 @@ export function EnhancedNotificationSystem() {
       onClearAllNotifications={clearAllNotifications} // Add this line
       onNotificationClick={handleNotificationClick}
       enableRealTimeUpdates={true}
-      enableBrowserNotifications={true}
+      enableBrowserNotifications={enableBrowserNotify}
       updateInterval={10000}
       showFilter={true}
       showMarkAllRead={true}
