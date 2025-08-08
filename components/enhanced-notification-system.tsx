@@ -53,7 +53,7 @@ export function EnhancedNotificationSystem() {
       .eq("id", Number.parseInt(id));
 
     if (error) {
-      console.error("Enhanced system mark as read error:", error);
+      console.error("Enhanced system mark as read errors:", error);
       throw error;
     }
 
