@@ -10,6 +10,11 @@ import type {
   GetAllDepartment,
   RequestProperty,
 } from "@/types"; // Import necessary types
+import {
+  checkAndNotifyPartialApproval,
+  notifyPropertyRequestDecision,
+  notifyPropertyRequestSubmitted,
+} from "./notification-actions";
 
 // Common rejection reasons
 
@@ -406,7 +411,73 @@ export const getAllDepartment = async ({
   };
 };
 
-export const requestProperties = async (properties: RequestProperty[]) => {
+// export const requestProperties = async (properties: RequestProperty[]) => {
+//   const { userId: username } = await auth();
+//   const supabase = createSupaseClient();
+
+//   const payload = properties.map((property) => ({
+//     ...property,
+//     username,
+//   }));
+
+//   const { data, error } = await supabase
+//     .from("request_property")
+//     .insert(payload)
+//     .select();
+
+//   if (error || !data) {
+//     throw new Error(error?.message || "Failed to insert request properties");
+//   }
+//   const batchId = data[0].batch_id; // Assuming batch_id is returned after insert
+//   // Fire notifications to managers and requester
+//   await notifyPropertyRequestSubmitted(batchId);
+
+//   return {
+//     success: true,
+//     data,
+//     inserted: data.length,
+//   };
+// };
+
+// export async function requestProperties(properties: RequestProperty[]) {
+//   const { userId: username } = await auth();
+//   const supabase = createSupaseClient();
+
+//   const payload = properties.map((property) => ({
+//     ...property,
+//     username,
+//   }));
+
+//   const { data, error } = await supabase
+//     .from("request_property")
+//     .insert(payload)
+//     .select();
+
+//   if (error || !data) {
+//     throw new Error(error?.message || "Failed to insert request properties");
+//   }
+
+//   // Fix: Get the request_batch_id from the first inserted record
+//   const batchId = data[0].request_batch_id;
+
+//   // Only send notifications if we have a valid batch ID
+//   if (batchId) {
+//     try {
+//       await notifyPropertyRequestSubmitted(batchId);
+//     } catch (notificationError) {
+//       console.error("Failed to send notifications:", notificationError);
+//       // Don't fail the entire request if notifications fail
+//     }
+//   }
+
+//   return {
+//     success: true,
+//     data,
+//     inserted: data.length,
+//   };
+// }
+
+export async function requestProperties(properties: RequestProperty[]) {
   const { userId: username } = await auth();
   const supabase = createSupaseClient();
 
@@ -424,35 +495,73 @@ export const requestProperties = async (properties: RequestProperty[]) => {
     throw new Error(error?.message || "Failed to insert request properties");
   }
 
+  const batchId = data[0]?.request_batch_id;
+
+  // Fire notifications to managers and requester
+  if (batchId) {
+    try {
+      await notifyPropertyRequestSubmitted(batchId);
+    } catch (err) {
+      console.error("Failed to send 'submitted' notifications:", err);
+    }
+  }
+
   return {
     success: true,
     data,
     inserted: data.length,
   };
-};
-
-export async function getRequestedProperties() {
-  const supabase = createSupaseClient();
-
-  const { data, error } = await supabase
-    .from("request_property")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Error fetching requested properties:", error);
-    throw new Error(error.message);
-  }
-
-  return data;
 }
 
-// Update request status with reason
-export const updateRequestStatus = async (
+// export async function updateRequestStatus(
+//   batchId: string,
+//   status: "approved" | "rejected",
+//   rejectionReason?: string
+// ) {
+//   const canApprove = await canApproveRejects();
+//   if (!canApprove) {
+//     throw new Error("You don't have permission to approve/reject requests");
+//   }
+
+//   const supabase = createSupaseClient();
+//   const approverProfile = await getUserProfile();
+
+//   if (!approverProfile) {
+//     throw new Error("Failed to get approver profile");
+//   }
+
+//   const updateData: any = {
+//     status,
+//     approved_by: approverProfile.fullName,
+//     rejected_by: approverProfile.userId,
+//     updated_at: new Date().toISOString(),
+//   };
+
+//   if (status === "rejected" && rejectionReason) {
+//     updateData.overall_rejection_reason = rejectionReason;
+//   }
+
+//   const { error } = await supabase
+//     .from("request_property")
+//     .update(updateData)
+//     .eq("request_batch_id", batchId);
+
+//   if (error) throw new Error(error.message);
+
+//   // Send notifications after successful database update
+//   try {
+//     await notifyPropertyRequestDecision(batchId, status, rejectionReason);
+//   } catch (notificationError) {
+//     console.error("Failed to send decision notifications:", notificationError);
+//     // Don't fail the entire operation if notifications fail
+//   }
+// }
+
+export async function updateRequestStatus(
   batchId: string,
   status: "approved" | "rejected",
   rejectionReason?: string
-) => {
+) {
   const canApprove = await canApproveRejects();
   if (!canApprove) {
     throw new Error("You don't have permission to approve/reject requests");
@@ -476,13 +585,76 @@ export const updateRequestStatus = async (
     updateData.overall_rejection_reason = rejectionReason;
   }
 
+  // Notify managers and requester about decision
+  try {
+    await notifyPropertyRequestDecision(batchId, status, rejectionReason);
+  } catch (err) {
+    console.error("Failed to send decision notifications:", err);
+  }
+
   const { error } = await supabase
     .from("request_property")
     .update(updateData)
     .eq("request_batch_id", batchId);
 
   if (error) throw new Error(error.message);
-};
+}
+
+export async function getRequestedProperties() {
+  const supabase = createSupaseClient();
+
+  const { data, error } = await supabase
+    .from("request_property")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching requested properties:", error);
+    throw new Error(error.message);
+  }
+
+  return data;
+}
+
+// Update request status with reason
+// export const updateRequestStatus = async (
+//   batchId: string,
+//   status: "approved" | "rejected",
+//   rejectionReason?: string
+// ) => {
+//   const canApprove = await canApproveRejects();
+//   if (!canApprove) {
+//     throw new Error("You don't have permission to approve/reject requests");
+//   }
+
+//   const supabase = createSupaseClient();
+//   const approverProfile = await getUserProfile();
+
+//   if (!approverProfile) {
+//     throw new Error("Failed to get approver profile");
+//   }
+
+//   const updateData: any = {
+//     status,
+//     approved_by: approverProfile.fullName,
+//     rejected_by: approverProfile.userId,
+//     updated_at: new Date().toISOString(),
+//   };
+
+//   if (status === "rejected" && rejectionReason) {
+//     updateData.overall_rejection_reason = rejectionReason;
+//   }
+
+//   // Notify managers and requester about decision
+//   await notifyPropertyRequestDecision(batchId, status, rejectionReason);
+
+//   const { error } = await supabase
+//     .from("request_property")
+//     .update(updateData)
+//     .eq("request_batch_id", batchId);
+
+//   if (error) throw new Error(error.message);
+// };
 
 // export const updateRequestStatus = async (
 //   batchId: string,
@@ -513,6 +685,36 @@ export const updateRequestStatus = async (
 // };
 
 // Update individual request item status with reason
+
+// export const updateRequestItemStatus = async (
+//   id: string,
+//   status: "approved" | "rejected",
+//   rejectionReason?: string
+// ) => {
+//   const canApprove = await canApproveRejects();
+//   if (!canApprove) {
+//     throw new Error("You don't have permission to approve/reject items");
+//   }
+
+//   const supabase = createSupaseClient();
+
+//   const updateData: any = {
+//     status,
+//     updated_at: new Date().toISOString(),
+//   };
+//   if (status === "rejected" && rejectionReason) {
+//     updateData.rejection_reason = rejectionReason;
+//   }
+
+//   const { error } = await supabase
+//     .from("request_property")
+//     .update(updateData)
+//     .eq("id", id);
+
+//   if (error) throw new Error(error.message);
+// };
+
+// Update individual request item status with reason (triggers partial-notify if applicable)
 export const updateRequestItemStatus = async (
   id: string,
   status: "approved" | "rejected",
@@ -539,6 +741,28 @@ export const updateRequestItemStatus = async (
     .eq("id", id);
 
   if (error) throw new Error(error.message);
+
+  // Fetch the item's batchId, then check if the batch has reached a partial state
+  try {
+    const { data: itemRow, error: fetchErr } = await supabase
+      .from("request_property")
+      .select("request_batch_id")
+      .eq("id", id)
+      .single();
+
+    if (fetchErr || !itemRow?.request_batch_id) {
+      console.warn(
+        "Could not resolve batch ID for partial notification:",
+        fetchErr
+      );
+      return;
+    }
+
+    const batchId = itemRow.request_batch_id as string;
+    await checkAndNotifyPartialApproval(batchId);
+  } catch (notifyErr) {
+    console.error("Partial approval notification check failed:", notifyErr);
+  }
 };
 
 // Update approved quantity

@@ -280,9 +280,6 @@ const NotificationItem = ({
                   <TimerIcon size={15} />
                   {formatTimeAgo(notification.createdAt)}
                 </span>
-                <span className="text-xs text-muted-foreground pt-2">
-                  double click to mark as read
-                </span>
               </div>
               <Badge
                 variant={
