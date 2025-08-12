@@ -222,10 +222,10 @@ export async function notifyPropertyRequestSubmitted(batchId: string) {
   await notifyAllManagers(
     "New Property Request",
     `Dept: ${summary.department}
-Requester: ${summary.requesterName}
-Items: ${summary.itemCount}
-Batch: ${batchId}
-${summary.startDate ? `Start: ${summary.startDate}` : ""}${
+    Requester: ${summary.requesterName}
+    Items: ${summary.itemCount}
+    Batch: ${batchId}
+    ${summary.startDate ? `Start: ${summary.startDate}` : ""}${
       summary.returnDate ? ` | Return: ${summary.returnDate}` : ""
     }`,
     "medium"

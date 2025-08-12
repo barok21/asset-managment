@@ -1,141 +1,95 @@
-"use client";
+"use client"
 
-import { NotificationCenter } from "@/components/notification-center";
-import { createClientSupabaseClient } from "@/lib/supabase/client";
-import { useUser } from "@clerk/nextjs";
-import { useQueryClient } from "@tanstack/react-query";
-import type { Notification, NotificationRow } from "@/types/notification";
+import { NotificationCenter } from "@/components/notification-center"
+import { createClientSupabaseClient } from "@/lib/supabase/client"
+import { useUser } from "@clerk/nextjs"
 
-const isMobileDevice = () =>
-  typeof navigator !== "undefined" &&
-  /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
+interface SystemNotification {
+  id: string
+  title: string
+  message: string
+  isRead: boolean
+  createdAt: string
+  priority: "low" | "medium" | "high"
+}
 
 export function EnhancedNotificationSystem() {
-  const { user, isLoaded } = useUser();
-  const queryClient = useQueryClient();
+  const { user, isLoaded } = useUser()
 
-  const fetchNotifications = async (): Promise<Notification[]> => {
-    if (!user?.id) return [];
+  const fetchNotifications = async () => {
+    if (!user?.id) return []
 
-    console.log("Enhanced system fetching notifications for:", user.id);
-    const supabase = createClientSupabaseClient();
+    const supabase = createClientSupabaseClient()
 
+    // Fetch notifications from Supabase using your schema
     const { data, error } = await supabase
       .from("notifications")
       .select("*")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+
+      console.log(data)
 
     if (error) {
-      console.error("Enhanced system fetch error:", error);
-      return [];
+      console.error("Failed to fetch notifications:", error)
+      return []
     }
 
-    console.log("Enhanced system raw data:", data);
-
-    const notifications =
-      data?.map((item: NotificationRow) => ({
+    return (
+      data?.map((item: any) => ({
         id: item.id.toString(),
         title: item.title,
         message: item.message,
         isRead: item.is_read,
         createdAt: item.created_at,
-        priority: item.priority || "low",
-      })) || [];
-
-    console.log("Enhanced system processed notifications:", notifications);
-    return notifications;
-  };
+        priority: item.priority as "low" | "medium" | "high",
+      })) || []
+    )
+  }
 
   const markAsRead = async (id: string) => {
-    console.log("Enhanced system marking as read:", id);
-    const supabase = createClientSupabaseClient();
+    const supabase = createClientSupabaseClient()
 
-    const { error } = await supabase
-      .from("notifications")
-      .update({ is_read: true })
-      .eq("id", Number.parseInt(id));
+    const { error } = await supabase.from("notifications").update({ is_read: true }).eq("id", id)
 
     if (error) {
-      console.error("Enhanced system mark as read errors:", error);
-      throw error;
+      console.error("Failed to mark notification as read:", error)
+      throw error
     }
-
-    console.log("Enhanced system successfully marked as read:", id);
-  };
+  }
 
   const markAllAsRead = async () => {
-    if (!user?.id) return;
+    if (!user?.id) return
 
-    console.log("Enhanced system marking all as read for user:", user.id);
-    const supabase = createClientSupabaseClient();
+    const supabase = createClientSupabaseClient()
 
     const { error } = await supabase
       .from("notifications")
       .update({ is_read: true })
       .eq("user_id", user.id)
-      .eq("is_read", false);
+      .eq("is_read", false)
 
     if (error) {
-      console.error("Enhanced system mark all as read error:", error);
-      throw error;
+      console.error("Failed to mark all notifications as read:", error)
+      throw error
     }
-
-    console.log("Enhanced system successfully marked all as read");
-  };
+  }
 
   const deleteNotification = async (id: string) => {
-    console.log("Enhanced system deleting notification:", id);
-    const supabase = createClientSupabaseClient();
+    const supabase = createClientSupabaseClient()
 
-    const { error } = await supabase
-      .from("notifications")
-      .delete()
-      .eq("id", Number.parseInt(id));
+    const { error } = await supabase.from("notifications").delete().eq("id", id)
 
     if (error) {
-      console.error("Enhanced system delete error:", error);
-      throw error;
+      console.error("Failed to delete notification:", error)
+      throw error
     }
+  }
 
-    console.log("Enhanced system successfully deleted:", id);
-  };
-
-  const clearAllNotifications = async () => {
-    if (!user?.id) return;
-
-    console.log(
-      "Enhanced system clearing all notifications for user:",
-      user.id
-    );
-    const supabase = createClientSupabaseClient();
-
-    const { error } = await supabase
-      .from("notifications")
-      .delete()
-      .eq("user_id", user.id);
-
-    if (error) {
-      console.error("Enhanced system clear all error:", error);
-      throw error;
-    }
-
-    console.log("Enhanced system successfully cleared all notifications");
-  };
-
-  const handleNotificationClick = (notification: Notification) => {
-    console.log("Enhanced system notification clicked:", notification);
-    // Automatically mark as read when clicked
-    if (!notification.isRead) {
-      markAsRead(notification.id).catch(console.error);
-    }
-  };
-
-  const enableBrowserNotify =
-    typeof window !== "undefined" &&
-    "Notification" in window &&
-    Notification?.permission === "granted" &&
-    !isMobileDevice();
+  const handleNotificationClick = (notification: any) => {
+    console.log("Notification clicked:", notification)
+    // Handle notification clicks here
+  }
 
   if (!isLoaded) {
     return (
@@ -145,11 +99,11 @@ export function EnhancedNotificationSystem() {
           <p className="text-muted-foreground">Loading notifications...</p>
         </div>
       </div>
-    );
+    )
   }
 
   if (!user) {
-    return null;
+    return null
   }
 
   return (
@@ -159,13 +113,12 @@ export function EnhancedNotificationSystem() {
       onMarkAsRead={markAsRead}
       onMarkAllAsRead={markAllAsRead}
       onDeleteNotification={deleteNotification}
-      onClearAllNotifications={clearAllNotifications} // Add this line
       onNotificationClick={handleNotificationClick}
       enableRealTimeUpdates={true}
-      enableBrowserNotifications={enableBrowserNotify}
-      updateInterval={10000}
+      enableBrowserNotifications={true}
+      updateInterval={30000}
       showFilter={true}
       showMarkAllRead={true}
     />
-  );
+  )
 }

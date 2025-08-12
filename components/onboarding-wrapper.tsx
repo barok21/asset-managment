@@ -7,6 +7,7 @@ import { getDepartments } from "@/lib/actions/property.action";
 import { AlertTriangle, LoaderIcon } from "lucide-react";
 import UserOnboardingForm from "./user-onboarding-form/user-onboarding-form";
 import Image from "next/image";
+import { TextShimmer } from "./motion-primitives/text-shimmer";
 
 type UserProfileStatus =
   | "loading"
@@ -66,9 +67,11 @@ export default function OnboardingWrapper({
 
   if (!isLoaded || profileStatus === "loading" || !user?.id) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex flex-col min-h-screen items-center justify-center">
         <LoaderIcon className="w-5 h-5 animate-spin mr-2" />
-        <span>Loading...</span>
+        <TextShimmer className="font-mono text-sm pt-2" duration={1}>
+          Loading...
+        </TextShimmer>
       </div>
     );
   }

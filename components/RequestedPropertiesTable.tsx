@@ -65,6 +65,7 @@ import { cn } from "@/lib/utils";
 import { COMMON_REJECTION_REASONS } from "@/types/constants";
 import RequestProperty from "./request-property";
 import { Skeleton } from "./ui/skeleton";
+import { TextShimmer } from "./motion-primitives/text-shimmer";
 
 interface PropertyItem {
   id: string;
@@ -474,9 +475,11 @@ export default function RequestedPropertyAdminCards() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center gap-2">
-          <LoaderIcon className="h-6 w-6 animate-spin" />
-          <span>Loading property requests...</span>
+        <div className="flex flex-col items-center gap-2">
+          <LoaderIcon className="h-5 w-5 animate-spin" />
+            <TextShimmer className="font-mono text-sm" duration={1}>
+              Loading property requests...
+            </TextShimmer>
         </div>
       </div>
     );
