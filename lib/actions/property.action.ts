@@ -2,7 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { createSupaseClient } from "../supabase";
-import { canApproveRejects, getUserProfile } from "./user.action";
+import { canApproveRejects, getUserProfile, getUserRole } from "./user.action";
 import type {
   CreateProperty,
   GetAllProperties,
@@ -228,25 +228,7 @@ export const getDashboardStatistics =
     };
   };
 
-// Check user role - you'll need to implement this based on your user management system
-export const getUserRole = async (): Promise<string> => {
-  const { userId } = await auth();
-  const supabase = createSupaseClient();
-
-  // This is a placeholder - implement based on your user role system
-  // You might have a users table with roles, or use Clerk's metadata
-  const { data: userRole, error } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .single();
-
-  if (error || !userRole) {
-    return "department_user"; // Default role
-  }
-
-  return userRole.role;
-};
+// getUserRole is provided by user.action.ts
 
 export const createPropertiesBulk = async (properties: CreateProperty[]) => {
   const { userId: username } = await auth();
@@ -786,6 +768,66 @@ export const updateApprovedQuantity = async (
     .eq("id", id);
 
   if (error) throw new Error(error.message);
+};
+
+// Mark a single requested property item as returned
+export const markRequestItemReturned = async (id: string) => {
+  const supabase = createSupaseClient();
+
+  const { data: updated, error } = await supabase
+    .from("request_property")
+    .update({
+      status: "returned",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select("request_batch_id")
+    .single();
+
+  if (error) throw new Error(error.message);
+  return { batchId: updated?.request_batch_id as string | undefined };
+};
+
+// Fetch all items in a batch
+export const getRequestItemsByBatch = async (batchId: string) => {
+  const supabase = createSupaseClient();
+
+  const { data, error } = await supabase
+    .from("request_property")
+    .select("*")
+    .eq("request_batch_id", batchId)
+    .order("created_at", { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return data || [];
+};
+
+// Fetch unreturned items (approved but not yet returned)
+export const getUnreturnedItems = async () => {
+  const supabase = createSupaseClient();
+
+  const user = await getUserProfile();
+  const role = await getUserRole();
+
+  let query = supabase
+    .from("request_property")
+    .select("*")
+    .in("status", ["approved"]) // treat only approved as out until marked returned
+    .order("created_at", { ascending: false });
+
+  if (user && role === "department_user") {
+    query = query.or(
+      `requestor_full_name.eq.${user.fullName},department.eq.${user.department}`
+    );
+  } else if (user && role === "property_manager") {
+    // Property managers see their department
+    query = query.eq("department", user.department);
+  } // higher_manager/admin see all
+
+  const { data, error } = await query;
+
+  if (error) throw new Error(error.message);
+  return data || [];
 };
 
 // Fetch grouped requests with pagination

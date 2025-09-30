@@ -17,6 +17,7 @@ import {
 import { ArrowUpDown, MoreHorizontal } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import * as XLSX from "xlsx"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
@@ -35,9 +36,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { getAllProperties } from "@/lib/actions/property.action"
+import { getAllProperties, createPropertiesBulk } from "@/lib/actions/property.action"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "./ui/badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "./ui/dialog"
+import { Progress } from "./ui/progress"
 
 // Property Type
 type Property = {
@@ -72,6 +75,12 @@ export default function AllPropertyList() {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
+
+  const [importOpen, setImportOpen] = React.useState(false)
+  const [importProgress, setImportProgress] = React.useState(0)
+  const [dragOver, setDragOver] = React.useState(false)
+  const [parsedRows, setParsedRows] = React.useState<any[]>([])
+  const [isImporting, setIsImporting] = React.useState(false)
 
   React.useEffect(() => {
     getAllProperties({ limit: 100, page: 1 }).then(res => setData(res.property))
@@ -187,8 +196,156 @@ export default function AllPropertyList() {
     setMaxPrice("")
   }
 
+  const exportSelected = () => {
+    const selectedRows = table.getFilteredSelectedRowModel().rows
+    const rows = selectedRows.map(r => {
+      const p = r.original as Property
+      return {
+        name: p.name,
+        quantity: p.quantity,
+        initial_price: p.initial_price,
+        category: p.category,
+        dept_user: p.dept_user,
+        UoM: p.UoM,
+      }
+    })
+    const ws = XLSX.utils.json_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Selected")
+    XLSX.writeFile(wb, "properties-selected.xlsx")
+  }
+
+  const handleFile = async (file: File) => {
+    setImportProgress(10)
+    const buf = await file.arrayBuffer()
+    setImportProgress(40)
+    const wb = XLSX.read(buf)
+    setImportProgress(60)
+    const ws = wb.Sheets[wb.SheetNames[0]]
+    const rows = XLSX.utils.sheet_to_json(ws) as any[]
+    setImportProgress(90)
+    // Map and insert
+    const mapped = rows.map(r => ({
+      name: String(r.name ?? r.Name ?? "").trim(),
+      quantity: Number(r.quantity ?? r.Quantity ?? 0),
+      initial_price: Number(r.initial_price ?? r.InitialPrice ?? r.price ?? 0),
+      category: String(r.category ?? r.Category ?? "").trim(),
+      dept_user: String(r.dept_user ?? r.Department ?? "").trim(),
+      UoM: String(r.UoM ?? r.uom ?? "pc").trim(),
+    })).filter(p => p.name && p.category)
+    setParsedRows(mapped)
+    setImportProgress(100)
+  }
+
+  const runImport = async () => {
+    if (parsedRows.length === 0) return
+    setIsImporting(true)
+    try {
+      await createPropertiesBulk(parsedRows as any)
+      const refreshed = await getAllProperties({ limit: 100, page: 1 })
+      setData(refreshed.property)
+      setParsedRows([])
+      setImportOpen(false)
+    } finally {
+      setIsImporting(false)
+      setImportProgress(0)
+    }
+  }
+
   return (
     <div className="space-y-4">
+      <div className="flex gap-2">
+        <Dialog open={importOpen} onOpenChange={setImportOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline">Import Excel</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Import Properties from Excel</DialogTitle>
+              <DialogDescription>
+                Supported types: .xlsx, .xls. Use the template for correct columns.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex items-center justify-between">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const ws = XLSX.utils.json_to_sheet([
+                    { name: "Item A", quantity: 10, initial_price: 100, category: "", dept_user: "", UoM: "pc" },
+                  ])
+                  const wb = XLSX.utils.book_new()
+                  XLSX.utils.book_append_sheet(wb, ws, "Template")
+                  XLSX.writeFile(wb, "property-template.xlsx")
+                }}
+              >
+                Download Template
+              </Button>
+            </div>
+            <div
+              className={`mt-4 border-2 border-dashed rounded-xl p-6 text-center ${dragOver ? "bg-muted" : ""}`}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOver(false)
+                const file = e.dataTransfer.files?.[0]
+                if (file) handleFile(file)
+              }}
+            >
+              <p className="text-sm">Drag and drop Excel file here</p>
+              <p className="text-xs text-muted-foreground">Accepted: .xlsx, .xls</p>
+              <div className="mt-3">
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    if (f) handleFile(f)
+                  }}
+                />
+              </div>
+            </div>
+            <div className="mt-4">
+              <Progress value={importProgress} />
+              <p className="text-sm text-muted-foreground">Importing...</p>
+              <p className="text-sm text-muted-foreground">Imported {importProgress}%</p>
+            </div>
+            <div className="mt-3 flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">Ready rows: {parsedRows.length}</p>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setImportOpen(false)}>Close</Button>
+                <Button onClick={runImport} disabled={parsedRows.length === 0 || isImporting}>
+                  {isImporting ? "Importing..." : "Import"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+        <Button variant="outline" onClick={exportSelected}>Export Selected</Button>
+        <Button
+          variant="outline"
+          onClick={() => {
+            try {
+              const rows = data.map(p => ({
+                name: p.name,
+                quantity: p.quantity,
+                initial_price: p.initial_price,
+                category: p.category,
+                dept_user: p.dept_user,
+                UoM: p.UoM,
+              }))
+              const ws = XLSX.utils.json_to_sheet(rows)
+              const wb = XLSX.utils.book_new()
+              XLSX.utils.book_append_sheet(wb, ws, "Properties")
+              XLSX.writeFile(wb, "properties.xlsx")
+            } catch (e) {
+              console.error(e)
+            }
+          }}
+        >
+          Export All
+        </Button>
+      </div>
       <div className="flex flex-wrap items-end gap-4">
         <Input placeholder="Search name..." value={search} onChange={e => setSearch(e.target.value)} className="w-48" />
 

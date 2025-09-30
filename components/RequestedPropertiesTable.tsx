@@ -9,6 +9,7 @@ import {
   getDashboardStatistics,
   type DashboardStatistics,
 } from "@/lib/actions/property.action";
+import { markRequestItemReturned } from "@/lib/actions/property.action";
 import {
   canApproveRejects,
   getUserRole,
@@ -72,7 +73,7 @@ interface PropertyItem {
   property_name: string;
   quantity: number;
   approved_quantity?: number;
-  status?: "approved" | "rejected" | "pending";
+  status?: "approved" | "rejected" | "pending" | "returned";
   rejection_reason?: string;
   usedInOtherDept: string[];
   event_desc: string;
@@ -88,7 +89,7 @@ interface RequestGroup {
   requestor_full_name: string;
   department: string;
   special_requirment?: string;
-  status?: "approved" | "rejected" | "pending" | "partial";
+  status?: "approved" | "rejected" | "pending" | "partial" | "returned";
   overall_rejection_reason?: string;
   created_at: string;
   properties: PropertyItem[];
@@ -222,7 +223,9 @@ export default function RequestedPropertyAdminCards() {
 
   const calculateOverallStatus = (
     properties: PropertyItem[]
-  ): "approved" | "rejected" | "pending" | "partial" => {
+  ): "approved" | "rejected" | "pending" | "partial" | "returned" => {
+    const hasReturned = properties.some((p) => p.status === "returned");
+    if (hasReturned) return "returned";
     const approvedCount = properties.filter(
       (p) => p.status === "approved"
     ).length;
@@ -266,7 +269,7 @@ export default function RequestedPropertyAdminCards() {
 
   const handleItemStatusChange = async (
     itemId: string,
-    status: "approved" | "rejected",
+    status: "approved" | "rejected" | "returned",
     groupId: string,
     reason?: string
   ) => {
@@ -278,7 +281,28 @@ export default function RequestedPropertyAdminCards() {
     setProcessingItems((prev) => new Set(prev).add(itemId));
 
     try {
-      await updateRequestItemStatus(itemId, status, reason);
+      if (status === "returned") {
+        const { batchId } = await markRequestItemReturned(itemId);
+        // Optimistically mark item returned and update overall status to returned
+        setRequests((prev) => {
+          const updated = prev.map((g) => {
+            if (g.request_batch_id === groupId) {
+              const updatedProperties = g.properties.map((p) =>
+                p.id === itemId ? { ...p, status: "returned" } : p
+              );
+              return {
+                ...g,
+                properties: updatedProperties,
+                status: "returned",
+              } as RequestGroup;
+            }
+            return g;
+          });
+          return updated;
+        });
+      } else {
+        await updateRequestItemStatus(itemId, status, reason);
+      }
       toast.success(`Property ${status}`);
 
       setRequests((prev) => {
@@ -287,12 +311,15 @@ export default function RequestedPropertyAdminCards() {
             const updatedProperties = g.properties.map((p) =>
               p.id === itemId ? { ...p, status, rejection_reason: reason } : p
             );
-            const newOverallStatus = calculateOverallStatus(updatedProperties);
+            const newOverallStatus =
+              status === "returned"
+                ? "returned"
+                : calculateOverallStatus(updatedProperties);
             return {
               ...g,
               properties: updatedProperties,
               status: newOverallStatus,
-            };
+            } as RequestGroup;
           }
           return g;
         });
@@ -309,8 +336,8 @@ export default function RequestedPropertyAdminCards() {
           return {
             ...prev,
             properties: updatedProperties,
-            status: calculateOverallStatus(updatedProperties),
-          };
+            status: status === "returned" ? "returned" : calculateOverallStatus(updatedProperties),
+          } as RequestGroup;
         });
       }
 
@@ -418,6 +445,8 @@ export default function RequestedPropertyAdminCards() {
         return <CheckCircle className="h-4 w-4 text-green-600" />;
       case "rejected":
         return <XCircle className="h-4 w-4 text-red-600" />;
+      case "returned":
+        return <CheckCircle className="h-4 w-4 text-emerald-700" />;
       case "partial":
         return <AlertTriangle className="h-4 w-4 text-orange-600" />;
       default:
@@ -431,6 +460,8 @@ export default function RequestedPropertyAdminCards() {
         return "default" as const;
       case "rejected":
         return "destructive" as const;
+      case "returned":
+        return "default" as const;
       case "partial":
         return "secondary" as const;
       default:
@@ -444,6 +475,8 @@ export default function RequestedPropertyAdminCards() {
         return "text-green-600 bg-green-50 border-green-200";
       case "rejected":
         return "text-red-600 bg-red-50 border-red-200";
+      case "returned":
+        return "text-emerald-700 bg-emerald-50 border-emerald-200";
       case "partial":
         return "text-orange-600 bg-orange-50 border-orange-200";
       default:
@@ -611,7 +644,7 @@ export default function RequestedPropertyAdminCards() {
             </div>
 
             {canApprove && (
-              <div className="flex items-end gap-2">
+            <div className="flex items-end gap-2">
                 <div className="flex-1">
                   <label className="text-xs text-muted-foreground block mb-1">
                     Approved Quantity
@@ -631,7 +664,7 @@ export default function RequestedPropertyAdminCards() {
                         );
                       }
                     }}
-                    disabled={item.status === "rejected"}
+                    disabled={item.status === "rejected" || request.status === "returned"}
                   />
                 </div>
                 <div className="flex gap-1">
@@ -640,7 +673,7 @@ export default function RequestedPropertyAdminCards() {
                     size="sm"
                     className="h-8 px-2 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
                     disabled={
-                      item.status === "approved" || processingItems.has(item.id)
+                      item.status === "approved" || processingItems.has(item.id) || request.status === "returned"
                     }
                     onClick={() =>
                       handleItemStatusChange(
@@ -661,7 +694,7 @@ export default function RequestedPropertyAdminCards() {
                     size="sm"
                     className="h-8 px-2 text-xs bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
                     disabled={
-                      item.status === "rejected" || processingItems.has(item.id)
+                      item.status === "rejected" || processingItems.has(item.id) || request.status === "returned"
                     }
                     onClick={() =>
                       openRejectionDialog(
@@ -678,6 +711,27 @@ export default function RequestedPropertyAdminCards() {
                       <XCircle className="h-3 w-3" />
                     )}
                   </Button>
+                  {item.status === "approved" && request.status !== ("pending" as any) && request.status !== ("returned" as any) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-2 text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200"
+                      disabled={processingItems.has(item.id) || request.status === "returned"}
+                      onClick={() =>
+                        handleItemStatusChange(
+                          item.id,
+                          "returned",
+                          request.request_batch_id
+                        )
+                      }
+                    >
+                      {processingItems.has(item.id) ? (
+                        <LoaderIcon className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <>Return</>
+                      )}
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
