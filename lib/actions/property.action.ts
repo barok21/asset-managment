@@ -788,6 +788,45 @@ export const markRequestItemReturned = async (id: string) => {
   return { batchId: updated?.request_batch_id as string | undefined };
 };
 
+// Mark multiple requested property items as returned
+export const markRequestItemsReturned = async (ids: string[]) => {
+  if (!ids || ids.length === 0) return { updated: 0 };
+
+  const supabase = createSupaseClient();
+
+  const { data, error } = await supabase
+    .from("request_property")
+    .update({
+      status: "returned",
+      updated_at: new Date().toISOString(),
+    })
+    .in("id", ids)
+    .select("id");
+
+  if (error) throw new Error(error.message);
+  return { updated: data?.length || 0 };
+};
+
+// Mark all items in a batch as returned
+export const markBatchReturned = async (batchId: string) => {
+  if (!batchId) return { updated: 0 };
+
+  const supabase = createSupaseClient();
+
+  const { data, error } = await supabase
+    .from("request_property")
+    .update({
+      status: "returned",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("request_batch_id", batchId)
+    .neq("status", "returned")
+    .select("id");
+
+  if (error) throw new Error(error.message);
+  return { updated: data?.length || 0 };
+};
+
 // Fetch all items in a batch
 export const getRequestItemsByBatch = async (batchId: string) => {
   const supabase = createSupaseClient();

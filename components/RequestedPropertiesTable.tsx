@@ -65,6 +65,7 @@ import {
 import { cn } from "@/lib/utils";
 import { COMMON_REJECTION_REASONS } from "@/types/constants";
 import RequestProperty from "./request-property";
+import RequestEvaluationForm from "./request-evaluation-form";
 import { Skeleton } from "./ui/skeleton";
 import { TextShimmer } from "./motion-primitives/text-shimmer";
 
@@ -122,6 +123,7 @@ export default function RequestedPropertyAdminCards() {
     null
   );
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEvalOpen, setIsEvalOpen] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>("higher_manager");
   const [canApprove, setCanApprove] = useState(false);
 
@@ -769,6 +771,17 @@ export default function RequestedPropertyAdminCards() {
               <CheckCircle className="h-4 w-4 mr-1" />
               Approve All
             </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                setSelectedRequest(request);
+                setIsEvalOpen(true);
+              }}
+            >
+              <FileText className="h-4 w-4 mr-1" />
+              Evaluate Request
+            </Button>
           </div>
         </>
       )}
@@ -1313,6 +1326,13 @@ export default function RequestedPropertyAdminCards() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {isEvalOpen && selectedRequest && (
+        <RequestEvaluationForm
+          onClose={() => setIsEvalOpen(false)}
+          request={selectedRequest}
+        />
+      )}
     </div>
   );
 }

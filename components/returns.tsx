@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { getRequestItemsByBatch, markRequestItemReturned } from "@/lib/actions/property.action";
+import { getRequestItemsByBatch, markRequestItemReturned, markRequestItemsReturned, markBatchReturned } from "@/lib/actions/property.action";
 
 interface Item {
   id: string;
@@ -21,6 +21,8 @@ export default function RequestedPropertyReturns() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
   const [marking, setMarking] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const loadBatch = async () => {
     if (!batchId.trim()) {
@@ -54,6 +56,58 @@ export default function RequestedPropertyReturns() {
     }
   };
 
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    setSelected(new Set(items.filter((i) => i.status !== "returned").map((i) => i.id)));
+  };
+
+  const clearSelection = () => setSelected(new Set());
+
+  const bulkReturnSelected = async () => {
+    const ids = Array.from(selected).filter((id) => {
+      const item = items.find((i) => i.id === id);
+      return item && item.status !== "returned";
+    });
+    if (ids.length === 0) {
+      toast.error("No selectable items");
+      return;
+    }
+    setBulkLoading(true);
+    try {
+      const { updated } = await markRequestItemsReturned(ids);
+      setItems((prev) => prev.map((i) => (ids.includes(i.id) ? { ...i, status: "returned" } : i)));
+      clearSelection();
+      toast.success(`Returned ${updated} item(s)`);
+    } catch (e: any) {
+      toast.error(e.message || "Bulk return failed");
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const bulkReturnAllInBatch = async () => {
+    if (!batchId.trim()) return;
+    setBulkLoading(true);
+    try {
+      const { updated } = await markBatchReturned(batchId.trim());
+      setItems((prev) => prev.map((i) => ({ ...i, status: "returned" })));
+      clearSelection();
+      toast.success(`Returned ${updated} item(s) in batch`);
+    } catch (e: any) {
+      toast.error(e.message || "Batch return failed");
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 space-y-4">
       <Card>
@@ -74,6 +128,20 @@ export default function RequestedPropertyReturns() {
 
           {items.length > 0 && (
             <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={selectAll} disabled={bulkLoading}>
+                  Select all
+                </Button>
+                <Button variant="outline" size="sm" onClick={clearSelection} disabled={selected.size === 0 || bulkLoading}>
+                  Clear
+                </Button>
+                <Button size="sm" onClick={bulkReturnSelected} disabled={selected.size === 0 || bulkLoading}>
+                  {bulkLoading ? "Returning..." : `Return selected (${selected.size})`}
+                </Button>
+                <Button size="sm" variant="secondary" onClick={bulkReturnAllInBatch} disabled={bulkLoading}>
+                  {bulkLoading ? "Returning..." : "Return entire batch"}
+                </Button>
+              </div>
               {items.map((item, idx) => (
                 <div key={item.id} className="flex items-center justify-between border rounded p-3">
                   <div>
@@ -85,6 +153,12 @@ export default function RequestedPropertyReturns() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(item.id)}
+                      onChange={() => toggleSelect(item.id)}
+                      disabled={item.status === "returned" || bulkLoading}
+                    />
                     <Badge variant={item.status === "returned" ? "default" : "outline"}>
                       {item.status || "pending"}
                     </Badge>
