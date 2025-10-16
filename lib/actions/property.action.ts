@@ -9,6 +9,8 @@ import type {
   CreateDept,
   GetAllDepartment,
   RequestProperty,
+  CreateEvaluationInput,
+  EvaluationRecord,
 } from "@/types"; // Import necessary types
 import {
   checkAndNotifyPartialApproval,
@@ -949,6 +951,299 @@ export const fetchGroupedRequestedPropertiesWithUsage = async (
 
   return { data: enriched, total, hasMore };
 };
+
+// ========================
+// Evaluations (create/list/update)
+// ========================
+
+export async function createEvaluation(
+  input: CreateEvaluationInput
+): Promise<{ success: true; data: EvaluationRecord }>{
+  const { userId } = await auth();
+  const supabase = createSupaseClient();
+
+  const payload = {
+    request_batch_id: input.request_batch_id,
+    department: input.department,
+    evaluator: input.evaluator || userId,
+    date: input.date,
+    resources: input.resources,
+    notes: input.notes ?? null,
+    scores: input.scores,
+    penalties: input.penalties,
+    total_score: input.totalScore,
+  };
+
+  const { data, error } = await supabase
+    .from("request_evaluations")
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message || "Failed to create evaluation");
+  }
+
+  // Normalize totalScore in return
+  const normalized = { ...data, totalScore: (data as any).totalScore ?? (data as any).total_score } as unknown as EvaluationRecord;
+  return { success: true, data: normalized };
+}
+
+export async function listEvaluationsByBatch(
+  requestBatchId: string
+): Promise<EvaluationRecord[]> {
+  const supabase = createSupaseClient();
+  
+  console.log("=== LIST EVALUATIONS BY BATCH DEBUG ===");
+  console.log("Looking for evaluations with batch ID:", requestBatchId);
+  
+  const { data, error } = await supabase
+    .from("request_evaluations")
+    .select("*")
+    .eq("request_batch_id", requestBatchId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching evaluations by batch:", error);
+    throw new Error(error.message);
+  }
+  
+  console.log("Raw data from database:", data);
+  console.log("Number of evaluations found:", data?.length || 0);
+  
+  const rows = (data || []).map((d: any) => ({ ...d, totalScore: d.totalScore ?? d.total_score })) as EvaluationRecord[];
+  
+  console.log("Processed rows:", rows);
+  console.log("=== END LIST EVALUATIONS DEBUG ===");
+  
+  return rows;
+}
+
+export async function listRecentEvaluations(
+  limit = 20
+): Promise<EvaluationRecord[]> {
+  const supabase = createSupaseClient();
+  const { data, error } = await supabase
+    .from("request_evaluations")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw new Error(error.message);
+  const rows = (data || []).map((d: any) => ({ ...d, totalScore: d.totalScore ?? d.total_score })) as EvaluationRecord[];
+  return rows;
+}
+
+export async function updateEvaluation(
+  id: string,
+  input: Partial<CreateEvaluationInput> & { totalScore?: number }
+): Promise<{ success: true }>{
+  const supabase = createSupaseClient();
+
+  console.log("=== UPDATE EVALUATION DEBUG ===");
+  console.log("Evaluation ID:", id);
+  console.log("Input received:", JSON.stringify(input, null, 2));
+
+  const updateData: Record<string, any> = {};
+  if (input.department !== undefined) updateData.department = input.department;
+  if (input.evaluator !== undefined) updateData.evaluator = input.evaluator;
+  if (input.date !== undefined) updateData.date = input.date;
+  if (input.resources !== undefined) updateData.resources = input.resources;
+  if (input.notes !== undefined) updateData.notes = input.notes ?? null;
+  if (input.scores !== undefined) updateData.scores = input.scores;
+  if (input.penalties !== undefined) updateData.penalties = input.penalties;
+  if (input.totalScore !== undefined) {
+    updateData.total_score = input.totalScore;
+  }
+
+  console.log("Processed update data:", JSON.stringify(updateData, null, 2));
+  console.log("Scores being updated:", updateData.scores);
+  console.log("Penalties being updated:", updateData.penalties);
+  console.log("Total score being updated:", updateData.total_score);
+
+  // First, let's check what's currently in the database
+  console.log("Looking for evaluation with ID:", id);
+  const { data: currentData, error: fetchError } = await supabase
+    .from("request_evaluations")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (fetchError) {
+    console.error("Error fetching current data:", fetchError);
+    
+    // Let's also check if there are any evaluations at all
+    const { data: allEvaluations, error: allError } = await supabase
+      .from("request_evaluations")
+      .select("id, request_batch_id, created_at")
+      .limit(10);
+    
+    if (!allError && allEvaluations) {
+      console.log("Available evaluations in database:", allEvaluations);
+    }
+    
+    throw new Error(`Failed to fetch current evaluation: ${fetchError.message}`);
+  }
+
+  console.log("Current data in database:", JSON.stringify(currentData, null, 2));
+
+  // Test if we can update at all by trying a simple update first
+  console.log("Testing basic update capability...");
+  const { data: testData, error: testError } = await supabase
+    .from("request_evaluations")
+    .update({ notes: currentData.notes || "test" })
+    .eq("id", id)
+    .select();
+
+  if (testError) {
+    console.error("Basic update test failed:", testError);
+    throw new Error(`Database update permission issue: ${testError.message}`);
+  }
+  console.log("Basic update test successful");
+
+  const { data, error } = await supabase
+    .from("request_evaluations")
+    .update(updateData)
+    .eq("id", id)
+    .select();
+
+  if (error) {
+    console.error("Update evaluation error:", error);
+    throw new Error(error.message);
+  }
+
+  console.log("Update successful, returned data:", JSON.stringify(data, null, 2));
+  
+  // Check if the update actually affected any rows
+  if (!data || data.length === 0) {
+    console.error("CRITICAL: Update operation returned no data - this means no rows were updated!");
+    console.error("This usually means the ID doesn't match any existing records");
+    console.error("ID being used:", id);
+    console.error("ID type:", typeof id);
+    
+    // Let's try to find the record by request_batch_id instead
+    if (updateData.request_batch_id) {
+      console.log("Attempting to find record by request_batch_id:", updateData.request_batch_id);
+      const { data: batchData, error: batchError } = await supabase
+        .from("request_evaluations")
+        .select("*")
+        .eq("request_batch_id", updateData.request_batch_id)
+        .limit(1);
+      
+      if (!batchError && batchData && batchData.length > 0) {
+        console.log("Found record by batch ID:", batchData[0]);
+        console.log("Actual ID in database:", batchData[0].id);
+        console.log("ID we're trying to update:", id);
+        console.log("IDs match:", batchData[0].id === id);
+        console.log("ID comparison (strict):", batchData[0].id === id);
+        console.log("ID comparison (loose):", batchData[0].id == id);
+        
+        // If we found the record but with a different ID, let's try updating with the correct ID
+        if (batchData[0].id !== id) {
+          console.log("ID mismatch detected! Trying to update with correct ID:", batchData[0].id);
+          const { data: correctedData, error: correctedError } = await supabase
+            .from("request_evaluations")
+            .update(updateData)
+            .eq("id", batchData[0].id)
+            .select();
+          
+          if (correctedError) {
+            console.error("Corrected update failed:", correctedError);
+          } else {
+            console.log("Corrected update successful:", correctedData);
+            return { success: true };
+          }
+        }
+      } else {
+        console.log("No record found by batch ID either");
+      }
+    }
+    
+    throw new Error("Update operation failed - no records were updated. This usually indicates an ID mismatch.");
+  }
+  
+  // Verify the update actually happened by comparing before and after
+  if (data && data.length > 0) {
+    const updatedRecord = data[0];
+    console.log("Verification - Updated record:", JSON.stringify(updatedRecord, null, 2));
+    
+    // Check if scores were actually updated
+    if (updateData.scores) {
+      const scoresMatch = JSON.stringify(updatedRecord.scores) === JSON.stringify(updateData.scores);
+      console.log("Scores update verification:", scoresMatch ? "SUCCESS" : "FAILED");
+      console.log("Expected scores:", updateData.scores);
+      console.log("Actual scores:", updatedRecord.scores);
+    }
+    
+    // Check if penalties were actually updated
+    if (updateData.penalties) {
+      const penaltiesMatch = JSON.stringify(updatedRecord.penalties) === JSON.stringify(updateData.penalties);
+      console.log("Penalties update verification:", penaltiesMatch ? "SUCCESS" : "FAILED");
+      console.log("Expected penalties:", updateData.penalties);
+      console.log("Actual penalties:", updatedRecord.penalties);
+    }
+    
+    // Check if total score was actually updated
+    if (updateData.total_score !== undefined) {
+      const totalScoreMatch = updatedRecord.total_score === updateData.total_score;
+      console.log("Total score update verification:", totalScoreMatch ? "SUCCESS" : "FAILED");
+      console.log("Expected total score:", updateData.total_score);
+      console.log("Actual total score:", updatedRecord.total_score);
+    }
+  } else {
+    console.error("No data returned from update operation");
+  }
+  
+  console.log("=== END UPDATE DEBUG ===");
+  return { success: true };
+}
+
+// Alternative update function that uses request_batch_id instead of ID
+export async function updateEvaluationByBatch(
+  requestBatchId: string,
+  input: Partial<CreateEvaluationInput> & { totalScore?: number }
+): Promise<{ success: true }>{
+  const supabase = createSupaseClient();
+
+  console.log("=== UPDATE EVALUATION BY BATCH DEBUG ===");
+  console.log("Request batch ID:", requestBatchId);
+  console.log("Input received:", JSON.stringify(input, null, 2));
+
+  const updateData: Record<string, any> = {};
+  if (input.department !== undefined) updateData.department = input.department;
+  if (input.evaluator !== undefined) updateData.evaluator = input.evaluator;
+  if (input.date !== undefined) updateData.date = input.date;
+  if (input.resources !== undefined) updateData.resources = input.resources;
+  if (input.notes !== undefined) updateData.notes = input.notes ?? null;
+  if (input.scores !== undefined) updateData.scores = input.scores;
+  if (input.penalties !== undefined) updateData.penalties = input.penalties;
+  if (input.totalScore !== undefined) {
+    updateData.total_score = input.totalScore;
+  }
+
+  console.log("Processed update data:", JSON.stringify(updateData, null, 2));
+
+  const { data, error } = await supabase
+    .from("request_evaluations")
+    .update(updateData)
+    .eq("request_batch_id", requestBatchId)
+    .select();
+
+  if (error) {
+    console.error("Update evaluation by batch error:", error);
+    throw new Error(error.message);
+  }
+
+  console.log("Update by batch successful, returned data:", JSON.stringify(data, null, 2));
+  
+  if (!data || data.length === 0) {
+    console.error("No records found for batch ID:", requestBatchId);
+    throw new Error("No evaluation found for the given request batch ID");
+  }
+
+  console.log("=== END UPDATE BY BATCH DEBUG ===");
+  return { success: true };
+}
 
 // for only the department
 // export const fetchGroupedRequestedPropertiesWithUsage = async (

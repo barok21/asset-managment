@@ -129,8 +129,8 @@ const data = {
 
       items: [
         {
-          title: "Genesis",
-          url: "#",
+          title: "Property Evaluation",
+          url: "/evaluation",
         },
         {
           title: "Explorer",

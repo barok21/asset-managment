@@ -108,6 +108,35 @@ export interface GetAllDepartment {
   page?: number;
 }
 
+// Evaluation types
+export interface EvaluationPenalties {
+  lateReturn: boolean;
+  unreportedLoss: boolean;
+  wastedConsumables: boolean;
+}
+
+export interface EvaluationResourceItem {
+  id: string;
+  property_name: string;
+}
+
+export interface CreateEvaluationInput {
+  request_batch_id: string;
+  department: string;
+  evaluator: string;
+  date: string; // yyyy-mm-dd
+  resources: EvaluationResourceItem[]; // stored as JSON array
+  notes?: string;
+  scores: Record<string, number>; // stored as JSON
+  penalties: EvaluationPenalties; // stored as JSON
+  totalScore: number;
+}
+
+export interface EvaluationRecord extends CreateEvaluationInput {
+  id: string; // uuid assigned by DB
+  created_at: string;
+}
+
 export interface BuildClient {
   key?: string;
   sessionToken?: string;
