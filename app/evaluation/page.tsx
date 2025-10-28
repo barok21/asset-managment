@@ -296,7 +296,7 @@ export default async function Page() {
                             
                             {ev.notes && (
                               <div className="mt-4 pt-4 border-t">
-                                <p className="text-sm text-muted-foreground mb-1">Notes:</p>
+                                <p className="text-sm text-muted-foreground mb-1">Add Notes:</p>
                                 <p className="text-sm bg-muted/50 p-3 rounded-md">{ev.notes}</p>
                               </div>
                             )}
